@@ -1,0 +1,73 @@
+/* Alberta Open Data - Theme Definitions */
+
+/* Default Theme - Alberta Landscape */
+.theme-default {
+  /* Color Palette - Alberta-inspired */
+  --color-primary: #005E8A;         /* Rich blue - Abraham Lake and Lake Louise */
+  --color-primary-light: #0082BF;   /* Clear Alberta sky */
+  --color-secondary: #2D572C;       /* Deep green - Pine forests of Jasper */
+  --color-secondary-light: #4A7A49; /* Verdant greens of summer foliage */
+  --color-accent: #F78C25;          /* Vibrant sunset orange/gold from prairie sunsets */
+  --color-accent-light: #FFA94D;    /* Golden wheat fields of southern Alberta */
+  
+  /* Neutrals */
+  --color-background: #F0F5F9;      /* Subtle blue-white inspired by winter snow */
+  --color-background-alt: #FFFFFF;  /* Clean white */
+  --color-text: #283845;            /* Deep slate blue-gray like mountain shadows */
+  --color-text-light: #506677;      /* Softer version of mountaintop dusk */
+  --color-border: #D1E0EB;          /* Subtle blue-gray like mountain mist */
+  
+  /* Feedback colors */
+  --color-success: #2E7D32;
+  --color-error: #C62828;
+  --color-warning: #FF8F00;
+  --color-info: #0277BD;
+}
+
+/* Dark Theme - Alberta Night */
+.theme-dark {
+  /* Color Palette - Alberta night-inspired */
+  --color-primary: #004A6E;         /* Deep lake blue at twilight */
+  --color-primary-light: #006C9E;   /* Moonlight on water */
+  --color-secondary: #1E3D1E;       /* Dark forest at night */
+  --color-secondary-light: #2E5E2F; /* Shadowy forest edges */
+  --color-accent: #C86B20;          /* Campfire amber */
+  --color-accent-light: #E08A45;    /* Twilight glow */
+  
+  /* Neutrals */
+  --color-background: #121E26;      /* Alberta night sky */
+  --color-background-alt: #1E2E38;  /* Mountain shadows at night */
+  --color-text: #E5EDF3;            /* Starlight */
+  --color-text-light: #A0B5C6;      /* Cloudy night sky */
+  --color-border: #2C3E4E;          /* Distant mountain ridges */
+  
+  /* Feedback colors */
+  --color-success: #4CAF50;
+  --color-error: #F44336;
+  --color-warning: #FF9800;
+  --color-info: #2196F3;
+}
+
+/* High Contrast Theme - Alberta Accessibility */
+.theme-high-contrast {
+  /* Color Palette - Alberta-inspired with high contrast for accessibility */
+  --color-primary: #003E6E;         /* Deep blue - Rocky Mountain lakes, high contrast */
+  --color-primary-light: #0057A3;   /* Royal Alberta blue */
+  --color-secondary: #006400;       /* Forest green - Forests of Banff, high contrast */
+  --color-secondary-light: #008500; /* Mountain pine green */
+  --color-accent: #CC5200;          /* Prairie sunset orange, high contrast */
+  --color-accent-light: #E65C00;    /* Badlands clay orange */
+  
+  /* Neutrals - Maintaining high contrast for accessibility */
+  --color-background: #FFFFFF;      /* Snow white */
+  --color-background-alt: #F2F7FC;  /* Winter sky, very light blue tinge */
+  --color-text: #000000;            /* Pure black for maximum contrast */
+  --color-text-light: #1A1A1A;      /* Nearly black for strong contrast */
+  --color-border: #000000;          /* Black borders for clear delineation */
+  
+  /* Feedback colors */
+  --color-success: #008000;
+  --color-error: #FF0000;
+  --color-warning: #FF8000;
+  --color-info: #0000FF;
+}

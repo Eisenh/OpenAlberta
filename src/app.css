@@ -1,0 +1,40 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* Import Design System */
+@import './lib/styles/tokens.css';
+@import './lib/styles/themes.css';
+@import './lib/styles/layout.css';
+@import './lib/styles/components.css';
+
+/* Apply base styling */
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.6;
+  color: var(--color-text);
+  background-color: var(--color-background);
+  
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Default theme application */
+body:not([class*="theme-"]) {
+  /* Apply default theme if no theme class is present */
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+/* App container */
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0;
+}

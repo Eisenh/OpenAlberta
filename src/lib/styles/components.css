@@ -1,0 +1,250 @@
+/* Alberta Open Data - Component Styles */
+
+/* Buttons */
+button,
+.button {
+  display: inline-block;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-medium);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  text-align: center;
+  border: none;
+  background-color: var(--color-primary);
+  color: white;
+}
+
+button:hover,
+.button:hover {
+  background-color: var(--color-primary-light);
+  transform: translateY(-1px);
+}
+
+button:active,
+.button:active {
+  transform: translateY(0);
+}
+
+button:disabled,
+.button:disabled {
+  background-color: var(--color-text-light);
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+button.secondary,
+.button.secondary {
+  background-color: var(--color-secondary);
+  color: white;
+}
+
+button.secondary:hover,
+.button.secondary:hover {
+  background-color: var(--color-secondary-light);
+}
+
+button.accent,
+.button.accent {
+  background-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+button.accent:hover,
+.button.accent:hover {
+  background-color: var(--color-accent-light);
+}
+
+button.outline,
+.button.outline {
+  background-color: transparent;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+button.outline:hover,
+.button.outline:hover {
+  background-color: rgba(11, 79, 113, 0.05);
+}
+
+button.outline.secondary,
+.button.outline.secondary {
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+}
+
+button.outline.secondary:hover,
+.button.outline.secondary:hover {
+  background-color: rgba(61, 108, 81, 0.05);
+}
+
+/* Forms & Inputs */
+label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+input, 
+textarea, 
+select {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-family: var(--font-family);
+  font-size: 1rem;
+  background-color: var(--color-background-alt);
+  color: var(--color-text);
+  transition: var(--transition-fast);
+  margin-bottom: var(--spacing-lg);
+  box-sizing: border-box;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(11, 79, 113, 0.2);
+}
+
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+/* Feedback Messages */
+.message {
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+.message.error {
+  background-color: rgba(198, 40, 40, 0.1);
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
+}
+
+.message.success {
+  background-color: rgba(46, 125, 50, 0.1);
+  border: 1px solid var(--color-success);
+  color: var(--color-success);
+}
+
+.message.info {
+  background-color: rgba(2, 119, 189, 0.1);
+  border: 1px solid var(--color-info);
+  color: var(--color-info);
+}
+
+.message.warning {
+  background-color: rgba(255, 143, 0, 0.1);
+  border: 1px solid var(--color-warning);
+  color: var(--color-warning);
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+.loading-spinner.dark {
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: var(--color-primary);
+}
+
+.loading-spinner.large {
+  width: 2rem;
+  height: 2rem;
+  border-width: 3px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Navigation */
+.main-nav ul {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--spacing-lg);
+}
+
+.main-nav a {
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: var(--transition-fast);
+  position: relative;
+}
+
+.main-nav a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--color-primary);
+  transition: var(--transition-fast);
+}
+
+.main-nav a:hover::after {
+  width: 100%;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-medium);
+  color: white;
+  background-color: var(--color-primary);
+}
+
+.badge.secondary {
+  background-color: var(--color-secondary);
+}
+
+.badge.accent {
+  background-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+/* Tags */
+.tag {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-medium);
+  background-color: rgba(11, 79, 113, 0.1);
+  color: var(--color-primary);
+  margin-right: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
+}
+
+.tag.secondary {
+  background-color: rgba(61, 108, 81, 0.1);
+  color: var(--color-secondary);
+}
+
+.tag.accent {
+  background-color: rgba(243, 167, 60, 0.1);
+  color: var(--color-accent);
+}

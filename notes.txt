@@ -1,0 +1,14 @@
+qdrant endpoint
+https://183386c2-3672-45ed-963d-4eb5afb81f48.us-east4-0.gcp.cloud.qdrant.io
+
+cluster-wie write AIP key
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.2wqw-DpGfxKL-zBZ9PSMG7jv515mlXRoDZfyorqduLY
+
+read-only api key:
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.5TmWrCKmj9XDw61aKQtSRQboLvCTtWtnMtutiveF3Lw
+e.g. use:
+curl \
+    -X GET 'https://183386c2-3672-45ed-963d-4eb5afb81f48.us-east4-0.gcp.cloud.qdrant.io:6333' \
+    --header 'api-key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.2wqw-DpGfxKL-zBZ9PSMG7jv515mlXRoDZfyorqduLY'
+
+curl -X GET 'https://183386c2-3672-45ed-963d-4eb5afb81f48.us-east4-0.gcp.cloud.qdrant.io:6333'   --header 'api-key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.5TmWrCKmj9XDw61aKQtSRQboLvCTtWtnMtutiveF3Lw'

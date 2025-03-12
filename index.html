@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Open Data Graph Search</title>
+    <!-- GitHub Pages SPA redirect handling -->
+    <script type="text/javascript">
+      // Single Page Apps for GitHub Pages
+      // MIT License
+      // https://github.com/rafgraph/spa-github-pages
+      // This script checks to see if a redirect was triggered from the 404.html page
+      // If so, it converts the URL parameters to the corresponding path and redirects
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+        
+        // Handle path redirects from 404.html
+        var searchParams = new URLSearchParams(l.search);
+        if (searchParams.has('p')) {
+          var path = searchParams.get('p');
+          var queryString = searchParams.get('q');
+          var hash = l.hash;
+          
+          var redirectPath = l.pathname + (path ? path : '') + 
+                         (queryString ? '?' + queryString : '') + 
+                         (hash || '');
+                         
+          window.history.replaceState(null, null, redirectPath);
+        }
+      }(window.location))
+    </script>
+  </head>
+  <body class="theme-default">
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
