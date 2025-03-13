@@ -264,7 +264,7 @@
             {
               query_embedding: queryVector,
               match_threshold: 0.3,
-              match_count: 8,
+              match_count: 9,
               //min_content_length: 50,
             }
           );  //match_vectors 
@@ -357,6 +357,8 @@
     }
   };
   
+  // search performs a searchVectors call and updates the searchResults store, 
+  // and passes graph data for display
   const search = async () => {
     if (!query) return;
     
@@ -388,16 +390,23 @@
         id: result.id,
         label: result.payload.title,
         description: result.payload.description,
+        score: result.score
       }));
 
       const links = nodes.map(node => ({
         source: 'query',
         target: node.id,
-        label: `Similarity match`
+        label: `Similarity match`,
+        weight: node.score
       }));
 
       const newGraphData = { 
-        nodes: [{ id: 'query', label: 'Query', type: 'query', description: query }, ...nodes], 
+        nodes: [{ 
+          id: 'query', 
+          label: query.split(' ').slice(0, 5).join(' ') + (query.split(' ').length > 5 ? '...' : ''),
+          type: 'query', 
+          description: query 
+        }, ...nodes], 
         links 
       };
       
@@ -428,13 +437,7 @@
     // Perform the search
     await search();
     
-    // After search completes, update the query node's label to the clicked node's label
-    if (cy) {
-      const queryNode = cy.getElementById('query');
-      if (queryNode.length > 0) {
-        queryNode.data('label', clickedNodeLabel);
-      }
-    }
+    //}
   };
 </script>
 <div class="landing-page">

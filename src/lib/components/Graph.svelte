@@ -31,51 +31,42 @@
     
     cy = cytoscape({
       container: container,
-      style: [
-        {
-          selector: "node",
-          style: {
-            "background-color": "white", // Use white background instead of hiding it
-            "background-opacity": 1, // Show the background
-            "label": function(ele) {
-              // Truncate label to first 20 words and add ellipsis if needed
-              const fullLabel = ele.data('label') || '';
-              const words = fullLabel.split(' ');
-              if (words.length > 20) {
-                return words.slice(0, 20).join(' ') + '...';
-              }
-              return fullLabel;
+        style: [
+          {
+            selector: "node",
+            style: {
+              "background-color": "white",
+              "background-opacity": 1,
+              "label": "data(label)",
+              "color": "#0B4F71",
+              "text-valign": "center",
+              "text-wrap": "wrap",
+              "text-max-width": "200",
+              "text-halign": "center",
+              "font-weight": "bold", 
+              "font-size": "20px",
+              "width": 280,
+              "height": 140,
+              "shape": "rectangle",
+              "border-width": 1,
+              "border-color": "#E0E0E0",
+              "padding": 12
             },
-            "color": "#0B4F71", // Text color
-            "text-valign": "center",
-            "text-wrap": "wrap",
-            "text-max-width": "180", // Increased max width for text
-            "text-halign": "center",
-            "font-weight": "bold",
-            "font-size": "14px", // Further increased font size for better readability
-            "width": 200, // Larger width for text boxes
-            "height": 80, // Larger height for text boxes
-            "shape": "rectangle", // Use rectangle shape to match text box
-            "text-margin-y": 0, // No margin needed now
-            "border-width": 1, // Add border to the node itself
-            "border-color": "#E0E0E0", // Light border color
-            "padding": 10 // Increased padding for easier grabbing
           },
-        },
-        {
-          selector: "node[type='query']",
-          style: {
-            "color": "#F3A73C", // accent color for text
-            "background-color": "white",
-            "border-color": "#F3A73C", // accent color border
-            "border-width": 2, // Thicker border for query nodes
-            "width": 250, // Much larger for query nodes
-            "height": 100, // Much larger for query nodes
-            "padding": 15, // More padding for query nodes
-            "font-size": "20px", // Even larger font for query nodes
-            "text-max-width": "220", // Wider text for query node
+          {
+            selector: "node[type='query']",
+            style: {
+              "color": "#F3A73C",
+              "background-color": "white",
+              "border-color": "#F3A73C",
+              "border-width": 3,
+              "width": 280,
+              "height": 120,
+              "padding": 12,
+              "font-size": "24px",
+              "text-max-width": "300",
+            },
           },
-        },
         {
           selector: "edge",
           style: {
@@ -88,24 +79,13 @@
           },
         },
       ],
-      layout: { 
-        name: "cose",
-        idealEdgeLength: 150, // Increased for better spacing
-        nodeOverlap: 10, // Reduced to prevent overlapping
-        refresh: 20,
+      layout: {
+        name: "preset",
         fit: true,
-        padding: 50, // Increased padding around the graph
-        randomize: false,
-        componentSpacing: 150, // Increased spacing between components
-        nodeRepulsion: 600000, // Increased repulsion to spread nodes more
-        edgeElasticity: 100,
-        nestingFactor: 5,
-        gravity: 60, // Reduced gravity to allow nodes to spread out more
-        numIter: 1500, // More iterations for better layout
-        initialTemp: 200,
-        coolingFactor: 0.95,
-        minTemp: 1.0
+        padding: 30,
       },
+      userPanningEnabled: true,
+      userZoomingEnabled: true,
       wheelSensitivity: 0.3,
     });
 
@@ -121,10 +101,13 @@
       });
       
       const tooltip = document.getElementById("graph-tooltip");
-      tooltip.innerHTML = node.data('description') || node.data('label');
-      tooltip.style.display = "block";
-      tooltip.style.left = `${event.originalEvent.pageX}px`;
-      tooltip.style.top = `${event.originalEvent.pageY + 10}px`;
+      // Add small delay and offset to prevent click interference
+      setTimeout(() => {
+        tooltip.innerHTML = node.data('description') || node.data('label');
+        tooltip.style.display = "block";
+        tooltip.style.left = `${event.originalEvent.pageX + 25}px`; // Increased horizontal offset
+        tooltip.style.top = `${event.originalEvent.pageY + 30}px`; // Increased vertical offset
+      }, 50); // Reduced delay
     });
 
     // Hide tooltip on mouseout
@@ -178,12 +161,47 @@
     }
     
     // Format nodes
-    const nodes = data.nodes.map(node => ({
-      data: {
+    const nodes = data.nodes.map((node, index) => {
+      const isQueryNode = node.id === 'query';
+      const position = isQueryNode ? { x: 0, y: 0 } : calculateNodePosition(index - 1);
+      
+      // For query node, use search text from description
+      const nodeData = isQueryNode ? {
         ...node,
-        type: node.id === 'query' ? 'query' : 'result',
-      }
-    }));
+        label: node.label, // Use full search text as label
+        description: node.description, // preserve full description
+        type: 'query'
+      } : {
+        ...node,
+        type: 'result'
+      };
+
+      return {
+        data: nodeData,
+        position: position
+      };
+    });
+
+    // Calculate positions for rectangular layout
+    function calculateNodePosition(index) {
+      const width = 800;  // Increased horizontal spread
+      const height = 500; // Maintain vertical spread
+      
+      // Positions arranged with one node near each corner and side
+      const positions = [
+        { x: -width/2, y: -height/2 },  // top-left
+        { x: width/2, y: -height/2 },    // top-right
+        { x: width/2, y: height/2 },     // bottom-right
+        { x: -width/2, y: height/2 },    // bottom-left
+        { x: 0, y: -height/2 },         // top-center
+        { x: width/2, y: 0 },           // right-center
+        { x: 0, y: height/2 },          // bottom-center
+        { x: -width/2, y: 0 }           // left-center
+      ];
+      
+      // Use modulo to cycle through positions if more than 8 nodes
+      return positions[index % 8];
+    }
     
     // Format edges
     const edges = data.links.map((link, index) => ({
@@ -200,7 +218,7 @@
     // Add elements and run layout
     try {
       cy.add([...nodes, ...edges]);
-      cy.layout({ name: 'cose', fit: true }).run();
+      cy.layout({ name: 'preset', fit: true }).run();
       cy.center();
       cy.fit();
       
@@ -263,6 +281,7 @@
   .graph-tooltip {
     display: none;
     position: absolute;
+    pointer-events: none;
     background: var(--color-background-alt);
     padding: var(--spacing-sm) var(--spacing-md);
     border: 1px solid var(--color-border);

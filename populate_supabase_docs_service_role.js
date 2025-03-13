@@ -1,4 +1,7 @@
 // @ts-nocheck
+// This script processes a list of packages from the Alberta Open Data API and inserts them into a Supabase table.
+// It uses the Xenova Transformers library to generate embeddings for the package notes.
+// The script can be run from the command line or imported as a module.
 import { pipeline } from "@xenova/transformers";
 import { v4 as uuidv4 } from "uuid";
 import { createClient } from '@supabase/supabase-js';
@@ -6,8 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 // Create a Supabase client with the service role key
 // NOTE: You'll need to replace these with your actual service role key
 const supabaseUrl = 'https://lpajogamsldueqilqisl.supabase.co';
-const supabaseServiceRoleKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwYWpvZ2Ftc2xkdWVxaWxxaXNsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTYyNTAwOCwiZXhwIjoyMDU3MjAxMDA4fQ.G1W3CU5KADnjhGhgr67N53oUte2lzk4P4DaSCEADEP0"; // Replace with your service role key
+const supabaseServiceRoleKey = VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
@@ -247,8 +249,7 @@ import { createClient } from '@supabase/supabase-js';
 // Create a Supabase client with the service role key
 // NOTE: You'll need to replace these with your actual service role key
 const supabaseUrl = 'https://lpajogamsldueqilqisl.supabase.co';
-const supabaseServiceRoleKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwYWpvZ2Ftc2xkdWVxaWxxaXNsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTYyNTAwOCwiZXhwIjoyMDU3MjAxMDA4fQ.G1W3CU5KADnjhGhgr67N53oUte2lzk4P4DaSCEADEP0"; // Replace with your service role key
+const supabaseServiceRoleKey = VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
