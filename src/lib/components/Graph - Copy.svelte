@@ -2,28 +2,23 @@
   // @ts-nocheck - Svelte 5 TypeScript definition issues
   import { onMount, onDestroy } from "svelte";
   import cytoscape from "cytoscape";
-  import { get } from "svelte/store";
 
-  export let data;
+  export let graphData;
   export let onNodeClick;
-  export let onNodeDblClick;
   
   let cy; // Cytoscape instance
   let container;
-  let lastTap = 0;
-  const doubleClickDelay = 300; // milliseconds
-
-  // Watch for changes in graphData
-  $: if (cy && data) {
-    //const data = get(graphData);
-    console.log("Graph component reactive statement triggered with data:", data);
-    updateGraph(data);
-  }
+  
   // Debugging variables
   let graphStatus = "Initializing";
   let nodeCount = 0;
   let edgeCount = 0;
-//TODO fix display of node data. It likely isn't being passed correctly.
+  
+  // Watch for changes in graphData
+  $: if (cy && $graphData) {
+    updateGraph($graphData);
+  }
+  
   // Initialize Cytoscape
   function initGraph() {
     if (!container) {
@@ -36,57 +31,72 @@
     
     cy = cytoscape({
       container: container,
-      userPanningEnabled: true,
-      userZoomingEnabled: true,
-      wheelSensitivity: 0.3,
-      style: [
-        {
-          selector: "node",
-          style: {
-            "background-color": "white",
-            "background-opacity": 1,
-            "label": "data(label)",
-            "color": "#0B4F71",
-            "text-valign": "center",
-            "text-wrap": "wrap",
-            "text-max-width": "200",
-            "text-halign": "center",
-            "font-weight": "bold", 
-            "font-size": "20px",
-            "width": 280,
-            "height": 140,
-            "shape": "rectangle",
-            "border-width": 1,
-            "border-color": "#E0E0E0",
-            "padding": 12
-          }
-        },
-        {
-          selector: "node[id='query']",
-          style: {
-            "color": "#F3A73C",
-            "background-color": "white",
-            "border-color": "#F3A73C",
-            "border-width": 3,
-            "width": 280,
-            "height": 120,
-            "padding": 12,
-            "font-size": "24px",
-            "text-max-width": "300"
-          }
-        },
+        style: [
+          {
+            selector: "node",
+            style: {
+              "background-color": "white",
+              "background-opacity": 1,
+              "label": "data(label)",
+              "color": "#0B4F71",
+              "text-valign": "center",
+              "text-wrap": "wrap",
+              "text-max-width": "200",
+              "text-halign": "center",
+              "font-weight": "bold", 
+              "font-size": "20px",
+              "width": 280,
+              "height": 140,
+              "shape": "rectangle",
+              "border-width": 1,
+              "border-color": "#E0E0E0",
+              "padding": 12
+            },
+          },
+          {
+            selector: "node[type='query']",
+            style: {
+              "color": "#F3A73C",
+              "background-color": "white",
+              "border-color": "#F3A73C",
+              "border-width": 3,
+              "width": 280,
+              "height": 120,
+              "padding": 12,
+              "font-size": "24px",
+              "text-max-width": "300",
+            },
+          },
         {
           selector: "edge",
           style: {
             "width": "mapData(weight, 0.5, 1, 1, 8)",
-            "line-color": "#E0E0E0",
+            "line-color": "#E0E0E0", // border color
             "curve-style": "bezier",
             "target-arrow-shape": "triangle",
-            "target-arrow-color": "#E0E0E0",
+            "target-arrow-color": "#E0E0E0", // border color
             "opacity": 0.7
+          },
+        },
+        {
+          selector: "edge.debug",
+          style: {
+            "label": "data(weight)",
+            "font-size": "12px",
+            "color": "black",
+            "text-background-color": "white",
+            "text-background-opacity": 0.7
           }
-        }
-      ]
+        },
+      ],
+      layout: {
+        name: "preset",
+        fit: true,
+        padding: 30,
+      },
+      userPanningEnabled: true,
+      userZoomingEnabled: true,
+      wheelSensitivity: 0.3,
     });
 
     // Handle hover event
@@ -99,19 +109,15 @@
           : '#1C6F99', // primary-light color
         'border-width': 2
       });
-      const tooltip = document.getElementById("graph-tooltip-graph");
-      const containerRect = container.getBoundingClientRect();
       
-      // Calculate position relative to the container
-      const x = event.originalEvent.clientX - containerRect.left + 10;
-      const y = event.originalEvent.clientY - containerRect.top + 10;
-
+      const tooltip = document.getElementById("graph-tooltip");
+      // Add small delay and offset to prevent click interference
       setTimeout(() => {
         tooltip.innerHTML = node.data('description') || node.data('label');
         tooltip.style.display = "block";
-        tooltip.style.left = `${x}px`;
-        tooltip.style.top = `${y}px`;
-      }, 50);
+        tooltip.style.left = `${event.originalEvent.pageX + 25}px`; // Increased horizontal offset
+        tooltip.style.top = `${event.originalEvent.pageY + 30}px`; // Increased vertical offset
+      }, 50); // Reduced delay
     });
 
     // Hide tooltip on mouseout
@@ -119,33 +125,24 @@
       const node = event.target;
       node.style({
         'background-color': 'white', // Reset to default
-        'border-color': node.data('id') === 'query' 
+        'border-color': node.data('type') === 'query' 
           ? '#F3A73C' // accent color
           : '#E0E0E0', // default border color
-        'border-width': node.data('id') === 'query' ? 2 : 1
+        'border-width': node.data('type') === 'query' ? 2 : 1
       });
-      document.getElementById("graph-tooltip-graph").style.display = "none";
+      document.getElementById("graph-tooltip").style.display = "none";
     });
 
     // Handle node click
     cy.on("tap", "node", (event) => {
-      // Check if it is a double-click
-      const currentTime = Date.now();
-      if (currentTime - lastTap < doubleClickDelay) {
-          const node = event.target;
-          console.log("Double-clicked node:", node.id());
-          onNodeDblClick(node.data());
-      }
-      lastTap = currentTime;
       const node = event.target;
       if (onNodeClick) onNodeClick(node.data());
     });
 
     // Initial graph update if data is available
-    //if (graphData && get(graphData).nodes) {
- //   if (data && data.nodes) {
- //     updateGraph(data);
- //   }
+    if ($graphData && $graphData.nodes) {
+      updateGraph($graphData);
+    }
     
     graphStatus = "Graph initialized, waiting for data";
   }
@@ -177,26 +174,23 @@ function updateGraph(data) {
   console.log("Received graph data:", data);
 
   try {
-     // Batch all DOM operations
-    cy.batch(() => {
     // Remove existing elements
-      cy.elements().remove();
+    cy.elements().remove();
 
-      let nodes = data.nodes;
-      let links = data.links;
-/*
     // Add new elements
     cy.add([
       // Add nodes with positions
-      ...nodes.map((node, index) => ({
+      ...data.nodes.map((node, index) => ({
         data: {
           ...node,
           type: node.type || (node.id === 'query' ? 'query' : 'result')
         },
-        position: (displayMode === 'compact' && node.id !== 'query') ? calculateNodePosition(index - 1) : null,
+        position: node.id === 'query' 
+          ? { x: 0, y: 0 }
+          : calculateNodePosition(index - 1)
       })),
       // Add edges with weights
-      ...links.map((link, index) => ({
+      ...data.links.map((link, index) => ({
         data: {
           id: `edge-${index}`,
           source: link.source,
@@ -205,30 +199,9 @@ function updateGraph(data) {
         }
       }))
     ]);
-*/
-      
-      cy.add([
-        ...data.nodes.map((node, index) => ({
-          data: { ...node },
-          position: node.id === 'query' 
-            ? { x: 0, y: 0 }
-            : calculateNodePosition(index - 1)
-        })),
-      // Add edges with weights
-      ...links.map((link, index) => ({
-        data: {
-          id: `edge-${index}`,
-          source: link.source,
-          target: link.target,
-          weight: link.weight || 3
-        }
-      }))
-      ]);
-    });
 
     // Apply layout
-    //updateGraphLayout(displayMode);
-    cy.layout({ name: "preset", fit: true, padding: 30 }).run();
+    cy.layout({ name: 'preset', fit: true }).run();
     cy.center();
     cy.fit();
 
@@ -271,15 +244,13 @@ function updateGraph(data) {
 <div bind:this={container} class="graph-wrapper"></div>
 
 <!-- Tooltip for hover event -->
-<div id="graph-tooltip-graph" class="graph-tooltip"></div>
+<div id="graph-tooltip" class="graph-tooltip"></div>
 
-<!-- Debug Overlay
-{#if import.meta.env.DEV}
-  <div class="graph-debug-overlay">
-    <span>Status: {graphStatus}</span>
-    <span>Nodes: {nodeCount} | Edges: {edgeCount}</span>
-  </div>
-{/if} -->
+<!-- Debug Overlay -->
+<div class="graph-debug-overlay">
+  <span>Status: {graphStatus}</span>
+  <span>Nodes: {nodeCount} | Edges: {edgeCount}</span>
+</div>
 
 <style>
   .graph-wrapper {
@@ -287,7 +258,7 @@ function updateGraph(data) {
     height: 500px;
     background-color: var(--color-background-alt);
     border-radius: var(--border-radius-md);
-    position: relative; /* Added to make this the positioning context for the tooltip */
+    position: relative;
   }
   
   .graph-tooltip {
@@ -305,7 +276,7 @@ function updateGraph(data) {
     color: var(--color-text);
     text-align: center;
   }
-  /*
+  
   .graph-debug-overlay {
     position: absolute;
     bottom: 10px;
@@ -319,5 +290,4 @@ function updateGraph(data) {
     display: flex;
     flex-direction: column;
   }
-    */
 </style>

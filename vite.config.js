@@ -1,13 +1,13 @@
-import { defineConfig, loadEnv } from 'vite'
-import { svelte } from '@sveltejs/vite-plugin-svelte'
-import { resolve } from 'path'
+import { defineConfig, loadEnv } from 'vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { resolve } from 'path';
 import fs from "fs";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-
-  // Use HTTPS only in development mode
   const isDev = mode === "development";
+
+  // HTTPS settings for dev mode
   const serverConfig = isDev
     ? {
         https: {
@@ -16,10 +16,19 @@ export default defineConfig(({ mode }) => {
         },
         host: "localhost",
         port: 5173,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+        },
+        fs: {
+          strict: false, // Allow accessing `public/` directly
+          allow: ['.']
+        },
       }
     : {};
+
   return {
-    base: "/", // Changed from "/opendataAlberta/" unless you specifically need that path
+    base: "/", // Use "/" unless you need a specific subpath
+    publicDir: 'public',
     define: {
       "process.env": env,
     },
@@ -30,7 +39,15 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      ...serverConfig // Keep existing HTTPS config
-    }
+      ...serverConfig,
+      open: true, // Automatically open browser on dev start
+    },
+    build: {
+      rollupOptions: {
+        input: {
+          main: resolve(__dirname, "index.html"),
+        },
+      },
+    },
   };
 });

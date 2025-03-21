@@ -20,6 +20,9 @@
       if (error) {
         errorMessage = error.message;
       } else {
+              
+        // Sync local search history to Supabase
+        await searchHistory.syncToSupabase();
         navigate('/');
       }
     } catch (error) {

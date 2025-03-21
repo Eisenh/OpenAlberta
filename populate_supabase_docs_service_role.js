@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 // Create a Supabase client with the service role key
 // NOTE: You'll need to replace these with your actual service role key
 const supabaseUrl = 'https://lpajogamsldueqilqisl.supabase.co';
-const supabaseServiceRoleKey = VITE_SUPABASE_SERVICE_ROLE_KEY;
+const supabaseServiceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 

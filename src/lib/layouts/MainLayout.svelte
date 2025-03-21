@@ -6,9 +6,7 @@
 <div class="layout">
   <Header />
   <main class="main-content">
-    <div class="container">
-      <slot />
-    </div>
+    <slot />
   </main>
   <footer class="footer">
     <div class="container">
@@ -17,7 +15,7 @@
           <p class="mb-0">&copy; {new Date().getFullYear()} Eisenhawer Tech</p>
         </div>
         <div class="footer-section">
-          <p class="text-right mb-0">Powered by vector search</p>
+          <p class="text-right mb-0">Powered by Supabase pgvector search</p>
         </div>
       </div>
     </div>
@@ -29,21 +27,23 @@
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    width: 100vw;
+    max-width: 100%;
     background-color: var(--color-background);
+    overflow-x: hidden;
   }
 
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  padding: var(--spacing-xl) 0;
-}
+  .main-content {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    position: relative;
+  }
 
-.container {
-  display: flex;
-  flex: 1;
-}
-
+  .container {
+    display: flex;
+    flex: 1;
+  }
 
   .footer {
     background-color: var(--color-background-alt);

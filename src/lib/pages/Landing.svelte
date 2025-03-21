@@ -1,55 +1,270 @@
 <script>
   // @ts-nocheck - Svelte 5 TypeScript definition issues
   import { onMount } from 'svelte';
-  import { writable } from 'svelte/store';
+  import { writable, get } from 'svelte/store';
   import Graph from '../components/Graph.svelte';
+  import GraphExpanded from '../components/GraphExpanded.svelte';
+  import GraphSimilarity from '../components/GraphSimilarity.svelte';
   import { searchHistory } from '../stores/searchHistory';
   import { supabase } from '../supabaseClient';
   import { pipeline, env } from "@xenova/transformers";
-  //import * as ort from "onnxruntime-web";
-/*
-  // Configure the transformers.js library to use local models
-  env.allowLocalModels = true;
-  env.localModelPath = "/public/models/";
-  env.useBrowserCache = true;
-  env.useCustomCache = true;
-  // Configure path for local ONNX model
-  env.localModelPath = "/models/";
-  env.cacheDir = "/models/";
-  env.backends.onnx.wasm.wasmPaths = "/models/";
-  // Required model for compatibility with database records
-    // http://localhost:5173/models/all-MiniLM-L6-v2.onnx
-*/
-  const REQUIRED_MODEL ="../public/models/all-MiniLM-L6-v2"  //ll-MiniLM-L6-v2";   //" "Xenova/all-MiniLM-L6-v2";
+  import { 
+    calculateSimilarityMatrix, 
+    filterGraphByThreshold 
+  } from '../utils/similarity';
+  //import {jLouvain } from '../utils/louvain';
   
-// Initialize embedder lazily to avoid top-level await issues
-  let embedder = null;
+  //console.log("Local Model Path:", import.meta.env.BASE_URL + "models/");
+  env.localModelPath = import.meta.env.DEV  ? "/public/model/" :"/model/"; //import.meta.env.BASE_URL + "models/"; //"../public/models/";
+  
+  //import UsageExample from './usage-example.svelte';
+  // Define the required model path
+  //const modelPath = "Xenova/all-MiniLM-L6-v2";
+  
   //let session = null;
-  async function getEmbedder() {
-    if (!embedder) {
-      console.log("Initializing embedder...");
-      embedder = await pipeline("feature-extraction", REQUIRED_MODEL);
-      console.log("Embedder initialized");
-    }
-    return embedder;
-  }
-  let graphData = writable({ nodes: [], links: [] });
-  let query = '';
-  let queryVector = [];
-  let searchResults = writable([]);
-  let selectedDataset = writable(null);
-  let expandedResults = writable({});
-  let isModelLoading = writable(false);
-  let modelLoadingProgress = writable(0);
-  let modelLoadError = writable(null);
+  // let graphData = writable({ nodes: [], links: [] });  // TODO delete
+let query = '';
+let queryVector = writable([]);
+let searchResults = writable([]);  // ll search results
+let selectedDataset = writable(null);
+let expandedResults = writable({});  // accordion listing of results
+let isModelLoading = writable(false);
+let modelLoadingProgress = writable(0);
+let modelLoadError = writable(null);
+let displayMode = writable("compact");  // compact, expanded, similarity graph
+let searchInput = '';
+let showHistoryDropdown = false;
+let lastAccordionClick = 0;
+const doubleClickDelay = 300; // milliseconds (same as in graph components)
   
+  // Search and display thresholds
+  let similarityThreshold = 0.3; // Search threshold
+  let displaySimilarityThreshold = writable(0.3); // Display threshold - starts at search threshold
+  let minDisplayThreshold = 0.3; // Minimum display threshold (same as search threshold initially)
+  let resultCount = 50; // Maximum number of results to fetch
+  
+  // Maximum number of nodes to calculate similarities for
+  const MAX_SIMILARITY_NODES = 50;
+
+  // New stores for different graph views
+  let compactGraphData = writable({ nodes: [], links: [] });  // contains 9 nodes
+  let expandedGraphData = writable({ nodes: [], links: [] }); // contains all nodes, and links to query node
+  let similarityGraphData = writable({ nodes: [], links: []}); // all nodes and links between all nodes
+  
+  // Store for the full similarity matrix between all nodes
+  let similarityMatrixData = writable({ matrix: [], nodeIds: [] });
+/*
+  //displayMode.set("compact");
+  // Reactive statement to watch displayMode
+  $: if (displayMode === "compact") {
+    handleNodeClick(selectedDataset);
+  }
+    */
   // Store the model instance for reuse - use a writable store to ensure reactivity
-  const modelInstance = writable(null);
+  let modelInstance = writable(null);
   // Flag to track if we've already attempted to load the model
   let modelLoadAttempted = false;
   // Flag to track if model loading is in progress
   let modelLoadInProgress = false;
 
+
+  // Add reactive statement to update graph when display threshold changes, but don't recalculate similarities
+  $: if ($displaySimilarityThreshold !== undefined && $searchResults && $searchResults.length > 0) {
+    console.log("Display similarity threshold changed to", $displaySimilarityThreshold, "updating graph data");
+    if ($searchResults.length > 0) {
+      updateFilteredGraphData();  //triggers updates
+      //updateSimilarityGraphData();
+    }
+  }
+ 
+/*  not needed if data is all already calculated
+  $: if ($displayMode !== undefined && $searchResults && $searchResults.length > 0) {
+    console.log("Display mode changed to", $displayMode, "updating graph data");
+    if ($searchResults.length > 0) {
+      updateFilteredGraphData($searchResults, $displayMode);
+    }
+  }
+  */
+
+  /**
+   * Calculate full similarity matrix for all result nodes
+   * @param {Object} queryNode - The query node
+   * @param {Array} resultNodes - Array of result nodes
+   */
+  function calculateFullSimilarityMatrix(resultNodes) {
+    if (!resultNodes || resultNodes.length === 0) {
+      similarityMatrixData.set({ matrix: [], nodeIds: [] });
+      return;
+    }
+    
+    console.log("Calculating similarity matrix for", resultNodes.length, "nodes");
+    
+    try {
+      // Calculate matrix - limit to MAX_SIMILARITY_NODES for performance
+      const limitedNodes = resultNodes.slice(0, MAX_SIMILARITY_NODES);
+      
+      // Extract embeddings from nodes for calculation using standardized location
+      const nodesWithEmbeddings = limitedNodes.map(node => {
+        // Get embedding from node.embedding (our standardized location)
+        const embedding = node?.embedding || [];
+        
+        return {
+          id: node.id,
+          // Use embedding as the key expected by similarity.js
+          embedding: embedding
+        };
+      }).filter(node => Array.isArray(node.embedding) && node.embedding.length > 0);
+      
+      console.log(`Found ${nodesWithEmbeddings.length} nodes with valid embeddings out of ${limitedNodes.length} nodes`);
+      
+      // Calculate the similarity matrix
+      const matrixData = calculateSimilarityMatrix(nodesWithEmbeddings, MAX_SIMILARITY_NODES);
+      
+      // Store the matrix data
+      similarityMatrixData.set(matrixData);
+      
+      console.log("Similarity matrix calculated successfully:", matrixData);
+    } catch (error) {
+      console.error("Error calculating similarity matrix:", error);
+      similarityMatrixData.set({ matrix: [], nodeIds: [] });
+    }
+  }
+  
+  function updateFilteredGraphData() {
+ 
+  /**
+   * Update graph data for compact and expanded view modes, after search or change in display parameters. Each graph
+   * componet subscribes to its data, so whichever one is active automatically refreshes.
+   * Beginning with 
+   * 1. the expandedGraphData, which is all data after filtering of nodes, edges
+   * 2. then slicing that to create compactGraphData (first 9 nodes)
+   * 3. then updating similarityGraphData with the expandedGraphData plus to show the filtered set.
+   * 
+   * References $searchResults, which has the query node as the first node.
+   */
+    const allNodes = get(searchResults);
+    // The first node is the query node
+    
+    const queryNode = allNodes[0];
+    // Get result nodes (everything after the first node)
+    //const resultNodes = allNodes.slice(1);
+        
+    const currentThreshold = $displaySimilarityThreshold;
+    
+    // Filter nodes that meet the display threshold
+    const filteredNodes = allNodes.filter(node => 
+      node.similarity >= currentThreshold
+    );
+    
+    if (filteredNodes.length === 0) {
+      
+      console.warn("No nodes meet the display threshold:", currentThreshold);
+      compactGraphData.set({ nodes: [queryNode], links: [] });
+      expandedGraphData.set({ nodes: [queryNode], links: [] });
+      similarityGraphData.set({ nodes: [queryNode], links: [] });
+            
+      return;
+    }
+      updateExpandedGraphData(filteredNodes);  //puts filtered data into expandedGraphData
+      updateCompactGraphData(filteredNodes);
+      //updateSimilarityGraphData(filteredNodes);  // this should display the nodes without all the node-node links.
+  }
+  
+  /**
+   * Update the similarity graph data with node-to-node connections
+   * @param {Array} filteredNodes - Array of nodes with query node at index 0
+   */
+  function initializeSimilarityGraphData() {
+    // already includes nodes and queryNode-node edges, and should be filtered already
+    const graphData = $expandedGraphData;  
+    const links = graphData.links;
+    // Get the current threshold
+    const currentThreshold = get(displaySimilarityThreshold);
+    // Add links between result nodes based on similarity matrix
+    // similarityMatrixData is calculated once, after updating expandedGraphData
+    const { matrix, nodeIds } = get(similarityMatrixData);  
+    
+    if (matrix.length > 0 && nodeIds.length > 0) {
+      // Use the similarity matrix to create links between result nodes
+      for (let i = 0; i < nodeIds.length; i++) {
+        console.log("Si row ",i)
+        for (let j = i + 1; j < nodeIds.length; j++) {
+          const similarity = matrix[i][j];
+          if (similarity >= currentThreshold) {
+            links.push({
+              source: nodeIds[i],
+              target: nodeIds[j],
+              weight: similarity
+            });
+          }
+        }
+      }
+    }
+    
+    // Update the similarity graph data store
+    similarityGraphData.set({
+      nodes: filteredNodes,
+      links: links
+    });
+        
+    console.log("Updated similarityGraphData with", filteredNodes.length, "nodes and", links.length, "links");
+  }
+
+  function updateSimilarityGraphData(filtered) {
+    // already includes nodes and queryNode-node edges, and should be filtered already
+    
+    const simGraphData = get(expandedGraphData);  
+    
+    const links = simGraphData.links;
+    // Get the current threshold
+    const currentThreshold = get(displaySimilarityThreshold);
+    // Add links between result nodes based on similarity matrix
+    // similarityMatrixData is calculated once, after updating expandedGraphData
+    const { matrix, nodeIds } = get(similarityMatrixData);  
+    
+    if (matrix.length > 0 && nodeIds.length > 0) {
+      // Use the similarity matrix to create links between result nodes
+      for (let i = 0; i < nodeIds.length; i++) {
+        //console.log("Si row ",i)
+        for (let j = i + 1; j < nodeIds.length; j++) {
+          const similarity = matrix[i][j];
+          if (similarity >= currentThreshold) {
+            links.push({
+              source: nodeIds[i],
+              target: nodeIds[j],
+              weight: similarity
+            });
+          }
+        }
+      }
+    }
+    
+    // Update the similarity graph data store
+    similarityGraphData.set({
+      nodes: simGraphData.nodes,
+      links: links
+    });
+        
+    console.log("Updated similarityGraphData with", simGraphData.nodes.length, "nodes and", links.length, "links");
+  }
+
+// Initialize embedder lazily to avoid top-level await issues
+  let embedder = null;
+  async function getEmbedder() {
+    if (!embedder) {
+      try {
+        console.log("Initializing embedder...");
+        embedder = await pipeline("feature-extraction", 'Xenova/all-MiniLM-L6-v2'  );
+        //const testresult = await embedder("test string");
+        //console.log("Embedder initialized", JSON.stringify(testresult));
+        
+    } catch (error) {
+      console.error("Error initializing embedder:", error);
+
+    }
+    }
+    return embedder;
+  }
   function toggleResultExpansion(id) {
     expandedResults.update(current => ({
       ...current,
@@ -63,54 +278,9 @@
     graphDataUpdate: null,
     error: null
   };
-
-  function setSelectedDataset(id) {
-    const result = $searchResults.find(result => result.id === id);
-    if (result) {
-      selectedDataset.set(result);
-    }
-  }
-  
-  
-  // Function to try loading the required model
-  async function tryLoadModel() {
-    isModelLoading.set(true);
-    modelLoadError.set(null);
-    
-    try {
-      console.log(`Attempting to load model: ${REQUIRED_MODEL}`);
-      const embedder = await getEmbedder();  //pipeline("feature-extraction", REQUIRED_MODEL, {
-        /*cache: true,
-        progress_callback: (progress) => {
-          const percent = Math.round(progress.progress);
-          console.log(`Model loading progress: ${percent}%`);
-          modelLoadingProgress.set(percent);
-        }
-      });  */
-      console.log(`Successfully loaded model: ${REQUIRED_MODEL}`);
-      isModelLoading.set(false);
-      return embedder;
-    } catch (error) {
-      console.log(error);
-      // Check if the error is related to network/HTML response
-      if (error.message && error.message.includes("Unexpected token '<'")) {
-        console.error(`Network error loading model ${REQUIRED_MODEL}: Received HTML instead of JSON. This might be due to network issues or CORS problems.`);
-        console.error("This is likely a CORS issue. The model needs to be accessed from a server with proper CORS headers.");
-      } else {
-        console.error(`Error loading model ${REQUIRED_MODEL}:`, error);
-      }
-      
-      // Model failed to load
-      const errorMsg = "Failed to load embedding model. Using text search fallback.";
-      console.warn(errorMsg);
-      modelLoadError.set(errorMsg);
-      isModelLoading.set(false);
-      return null; // Return null instead of throwing an error to allow fallback
-    }
-  }
-
+ 
   onMount(async () => {
-    console.log("Component mounted");
+    console.log("Landing Component mounted");
     debugInfo = {
       apiCall: "Component initialized",
       searchResult: "Not started",
@@ -123,7 +293,7 @@
       modelLoadAttempted = true;
       modelLoadInProgress = true;
       try {
-        const model = await tryLoadModel();
+        let model = await getEmbedder();//tryLoadModel();
         if (model) {
           modelInstance.set(model);
           console.log("Model preloaded successfully and stored for reuse");
@@ -136,8 +306,20 @@
         modelLoadInProgress = false;
       }
     }
+    
+    // Load search history
+    await searchHistory.loadHistory();
   });
   
+  function formatDate(timestamp) {
+    const date = new Date(timestamp);
+    return new Intl.DateTimeFormat('en-CA', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  }
   const generateEmbedding = async (text) => {
     // If we don't have a model instance and we've already attempted to load it,
     // don't try again - just throw an error
@@ -148,14 +330,10 @@
     try {
       // Use the existing model instance if available
       if ($modelInstance) {
-        console.log("Using cached model instance");
+        //console.log("Using cached model instance");
         const  output = await $modelInstance(text, { pooling: "mean", normalize: true });
         // Extract the embedding output
         const embedding = Array.from(output.data)
-        console.log("Embedding generated successfully ", embedding);
-        console.log('Data Type:', typeof embedding);
-        console.log('result.data Length:', embedding.length);
-        
         return embedding;  //whole embedding incl .data, .shape, .dtype
       }
       
@@ -166,7 +344,7 @@
         
         try {
           console.log("Loading model for embedding generation");
-          const embedder = await tryLoadModel();
+          const embedder = await getEmbedder();// tryLoadModel();
           modelLoadInProgress = false;
           
           if (embedder) {
@@ -174,7 +352,7 @@
             const output = await embedder(text, { pooling: "mean", normalize: true });
             // Extract the embedding output
             const embedding = Array.from(output.data)
-            console.log("Embedding generated successfully");
+            console.log("Embedding generated successfully line 135", embedding);
             return embedding; //Array.from(result.data);  //embeddding vector
           } else {
             throw new Error("Failed to load model");
@@ -201,641 +379,781 @@
     }
   };
 
-  // Fallback search function that doesn't use embeddings
-  async function fallbackSearch(queryText) {
-    console.log("Using fallback search method with text search");
-    
-      try {
-        // Use a simple ILIKE query instead of textSearch since metadata is JSONB
-        const { data, error } = await supabase
-          .from('docs')
-          .select('id, created_at, metadata, package')
-          .or(`metadata->>title.ilike.%${queryText}%,metadata->>description.ilike.%${queryText}%,metadata->>notes.ilike.%${queryText}%`)
-          .limit(8);
-      
-      if (error) {
-        console.error("Text search error:", error);
-        throw error;
-      }
-      
-      if (!data || data.length === 0) {
-        console.log("No results found in text search");
-        return [];
-      }
-      
-      console.log(`Found ${data.length} results using text search`);
-      
-      return data.map((item, index) => ({
-        id: item.id,
-        payload: {
-          title: item.metadata.title || "Untitled",
-          description: item.metadata.description || item.content || "No description available",
-          notes: item.metadata.notes,
-          resources: item.metadata.resources || [],
-          tags: item.metadata.tags || []
-        },
-        score: 1 - (index * 0.1)
-      }));
-    } catch (error) {
-      console.error("Fallback search error:", error);
-      throw error;
+  /**
+   * Update the compact view graph data
+   * @param {Array} filteredNodes - Array of nodes with query node at index 0
+   */
+  function updateCompactGraphData(filteredNodes) {
+    if (!filteredNodes || filteredNodes.length === 0) {
+      compactGraphData.set({ nodes: [], links: [] });
+      return;
     }
+    
+    // Extract query node (first element)
+    const queryNode = filteredNodes[0];
+    
+    // Get result nodes (everything after first element)
+    const resultNodes = filteredNodes.slice(1);
+    
+    if (resultNodes.length === 0) {
+      compactGraphData.set({ nodes: [queryNode], links: [] });
+      return;
+    }
+    
+    // Sort by similarity and limit to 8 results  TODO should already be sorted
+    const sortedResults = [...resultNodes].sort((a, b) => b.similarity - a.similarity);
+    const limitedResults = sortedResults.slice(0, 8);
+    
+    // Create graph links from query node to results
+    const graphLinks = limitedResults.map(result => ({
+      source: queryNode.id,
+      target: result.id,
+      weight: result.similarity ? Math.max(1, result.similarity * 10) : 5
+    }));
+    console.log("Graphlinks in update compact: ", graphLinks)
+    // Final nodes are query node plus limited results
+    compactGraphData.set({
+      nodes: [queryNode, ...limitedResults],
+      links: graphLinks
+    });
   }
 
-  async function searchVectors(queryText) {
+  /**
+   * Update the expanded view graph data
+   * @param {Array} filteredNodes - Array of nodes with query node at index 0
+   */
+  function updateExpandedGraphData(filteredNodes) {
+    if (!filteredNodes || filteredNodes.length === 0) {
+      expandedGraphData.set({ nodes: [], links: [] });
+      return;
+    }
+    
+    // Extract query node (first element)
+    const queryNode = filteredNodes[0];
+    
+    // Get result nodes (everything after first element)
+    const resultNodes = filteredNodes.slice(1);
+    
+    if (resultNodes.length === 0) {
+      expandedGraphData.set({ nodes: [queryNode], links: [] });
+      return;
+    }
+    
+    // Create graph links from query node to results
+    const graphLinks = resultNodes.map(result => ({
+      source: queryNode.id,
+      target: result.id,
+      weight: result.similarity// ? Math.max(1, result.similarity ) : 0.5
+    }));
+    
+    // Use all filtered nodes
+    expandedGraphData.set({
+      nodes: filteredNodes,
+      links: graphLinks
+    });
+    console.log("ExpandedGraphData: ", get(expandedGraphData))
+  }
+
+// First, let's modify the searchVectors function to return consistent data structure
+// searchVectors needs to return the whole data set and add a new node if the search was from text rather than a node click
+  async function searchVectors(queryText, rc = resultCount) {
     try {
-      // If we have a model instance, use it for vector search
       if ($modelInstance) {
         console.log("Using vector search with loaded model");
-        let queryVector = [];
+        //let queryVector = [];
         try {
-
-          queryVector = [...(await generateEmbedding(queryText))];
-          //console.log('Query Vector:', queryVector);
-          //console.log('Data Type:', typeof queryVector);
-          //console.log('Array Length:', queryVector.length);
-          //console.log('First 5 Values:', queryVector.slice(0, 5));
-          //let qv = Array.from(queryVector.data);
-          //console.log('Array from Query Vector:', qv);
-          //console.log("Embedding generated, searching vectors...", queryVector);
+          queryVector = await generateEmbedding(queryText);
+          
+          console.log("In searchVectors, Query vector type:", typeof queryVector);
+          console.log("Query vector is array?", Array.isArray(queryVector));
+          if (Array.isArray(queryVector) && queryVector.length > 0) {
+            console.log("First few values of query vector:", queryVector.slice(0, 5));
+          }
           
           const { error: matchError, data: response } = await supabase.rpc(
             'match_vectors',
             {
               query_embedding: queryVector,
-              match_threshold: 0.3,
-              match_count: 9,
-              //min_content_length: 50,
+              match_threshold: similarityThreshold,
+              match_count: rc, 
             }
-          );  //match_vectors 
+          );
+
           if (matchError) {
             console.error('Error searching documents:', matchError);
-            return [];
+            return { results: [] };
           }
-          console.log("Embedding generated, searching vectors...", queryVector);
 
-          // Ensure embedding is properly formatted before sending to Supabase
-          /*const embeddingArray = Array.isArray(embedding.tolist()) 
-            ? embedding.tolist() 
-            : Object.values(embedding.tolist());
-          console.log("First 5 embedding values:", embeddingArray.slice(0, 5));
-          
-          const response = await supabase
-            .from('docs')
-            .select('id, created_at, metadata, package')
-            .rpc('match_notes_embeddings', { 
-              query_embedding: embeddingArray,
-              match_threshold: 0.5,
-              match_count: 8
-            });
-          
-          
-          if (response.error) throw response.error;
-          */
-          //console.log("Search response received from Supabase ", response);
-          
-          //const data = response.data;
-          
           if (!response || response.length === 0) {
             console.log("No vector search results found");
-            return [];
+            return { results: [] };
+          }
+
+          // Check the type of first embedding to diagnose the issue
+          if (response.length > 0) {
+            console.log("First embedding type:", typeof response[0].notes_embedding);
+            console.log("Is array?", Array.isArray(response[0].notes_embedding));
+            console.log("First few values:", Array.isArray(response[0].notes_embedding) ? 
+              response[0].notes_embedding.slice(0, 5) : 
+              "Not an array");
+              
+            // If it's a string, try to parse it
+            if (typeof response[0].notes_embedding === 'string') {
+              console.log("Embedding appears to be stored as a string, attempting to parse");
+            }
           }
           
-          return response.map((item, index) => ({
-            id: item.id,
-            payload: {
-              title: item.metadata.title || "Untitled",
+          const results = response.map((item) => {
+            // Process embedding - ensure it's an array
+            let embedding = item.notes_embedding;
+            
+            // If it's a string, try to parse it as JSON
+            if (typeof embedding === 'string') {
+              try {
+                embedding = JSON.parse(embedding);
+              } catch (e) {
+                console.error("Failed to parse embedding string:", e, " Splitting by ,");
+                // If parsing fails, split by commas as a fallback
+                embedding = embedding.split(',').map(Number);
+              }
+            }
+            
+            return {
+              id: item.id,
+              label: item.metadata.title || "Untitled",  //used as label for nodes
               description: item.metadata.notes || item.content || "No description available",
-              //notes: item.metadata.notes,
               resources: item.metadata.resources || [],
-              tags: item.metadata.tags || []
-            },
-            score: 1 - (index * 0.2) // Temporary scoring until we get real distances
-          }));
+              tags: item.metadata.tags || [],
+              embedding: embedding,  // Store embeddings as array
+              similarity: item.similarity
+            };
+          });
+          
+          console.log(`Processed ${results.length} search results with embeddings`);
+          console.log("First result embedding type:", typeof results[0]?.embedding);
+          console.log("First embedding is array?", Array.isArray(results[0]?.embedding));
+          
+          return { results };
+
         } catch (error) {
-          console.error("Vector search failed:", error);
-          throw error;
+          console.error("Error in vector search:", error);
+          
+          return { results };
         }
       } else {
-        // If we don't have a model instance, use text search
-        console.log("No model available, using text search");
-        
-        // Use a simple ILIKE query instead of textSearch since metadata is JSONB
+        // Fallback to text search with same return structure
         const { data, error } = await supabase
           .from('docs')
-          .select('id, created_at, metadata, package')
+          .select('id, metadata')
           .or(`metadata->>title.ilike.%${queryText}%,metadata->>description.ilike.%${queryText}%,metadata->>notes.ilike.%${queryText}%`)
-          .limit(8);
-        
-        if (error) {
-          console.error("Text search error:", error);
-          throw error;
-        }
-        
-        if (!data || data.length === 0) {
-          console.log("No results found in text search");
-          return [];
-        }
-        
-        //console.log(`Found ${data.length} results using text search`);
-        
-        return data.map((item, index) => ({
+          .limit(resultCount);
+
+        if (error) throw error;
+
+        const results = (data || []).map((item, index) => ({
           id: item.id,
-          payload: {
-            title: item.metadata.title || "Untitled",
-            description: item.metadata.description || item.content || "No description available",
-            notes: item.metadata.notes,
-            resources: item.metadata.resources || [],
-            tags: item.metadata.tags || []
-          },
-          score: 1 - (index * 0.1)
+          label: item.metadata.title || "Untitled",
+          description: item.metadata.notes || "No description available",
+          resources: item.metadata.resources || [],
+          tags: item.metadata.tags || [],
+            // Use empty array as embedding since no actual embeddings available in text search
+          embedding: [],
+          similarity: 1 - (index * 0.1)
         }));
+        
+        return { results, queryText };
       }
     } catch (error) {
       console.error("Search error:", error);
-      throw error;
+      return { results, queryText };
     }
-  };
+  }
+
+// Handle node click - update to use standardized data structure
+async function handleNodeClick(node) {
+  if (node.id === 'query') return;  // don't do anything if the clicked node is the query node.
+
+  // Store the clicked node in a separate store for single-click details display
+  selectedDataset.set({
+    id: node.id,
+    label: node.label || 'Untitled',
+    description: node.description || 'No description available',
+    resources: node.resources || [],
+    tags: node.tags || [],
+    // Use standardized embedding location
+    embedding: node.embedding || []
+  });
+}
+
+// Double-click handler to perform a new search
+const handleDoubleClick = async (node) => {
+  if (node.id === 'query') return;  // don't do anything if the clicked node is the query node.
+
+  if (!node?.description) {
+    console.error("Cannot search without node description");
+    return;
+  }
   
-  // search performs a searchVectors call and updates the searchResults store, 
-  // and passes graph data for display
-  const search = async () => {
-    if (!query) return;
-    
-    debugInfo.error = null;
-    console.log("Starting search with query:", query);
-    
-    try {
-      debugInfo.apiCall = `Searching for: ${query}`;
-      
-      const searchResponse = await searchVectors(query);
-      console.log("Search response:", searchResponse);
-      debugInfo.searchResult = `✓ Results: ${searchResponse.length} items`;
-      
-      if (!searchResponse?.length) {
-        console.log("No results found");
-        searchResults.set([]);
-        return;
-      }
-
-      const processedResults = searchResponse.map(item => ({
-        id: item.id,
-        payload: item.payload,
-        score: item.score
-      }));
-
-      searchResults.set(processedResults);
-      
-      const nodes = processedResults.map((result, index) => ({
-        id: result.id,
-        label: result.payload.title,
-        description: result.payload.description,
-        score: result.score
-      }));
-
-      const links = nodes.map(node => ({
-        source: 'query',
-        target: node.id,
-        label: `Similarity match`,
-        weight: node.score
-      }));
-
-      const newGraphData = { 
-        nodes: [{ 
-          id: 'query', 
-          label: query.split(' ').slice(0, 5).join(' ') + (query.split(' ').length > 5 ? '...' : ''),
-          type: 'query', 
-          description: query 
-        }, ...nodes], 
-        links 
-      };
-      
-      graphData.set(newGraphData);
-      debugInfo.graphDataUpdate = `✓ Graph data: ${nodes.length} nodes, ${links.length} links`;
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        searchHistory.addSearch(query, new Date().toISOString());
-      }
-    } catch (error) {
-      console.error("Search error:", error);
-      debugInfo.error = `Error: ${error.message}`;
-      searchResults.set([]);
-    }
-  };
-
-  const handleNodeClick = async (node) => {
-    if (node.id === 'query') return;
-    setSelectedDataset(node.id);
-    
-    // Store the clicked node's label to use as the new query node label
-    const clickedNodeLabel = node.label || '';
-    
-    // Set the query text to the node's description
-    query = node.description;
-    
+  console.log("Double-click search with:", node.description);
+  
+  // Clear all graph data if no results
+  compactGraphData.set({ nodes: [], links: [] });
+  expandedGraphData.set({ nodes: [], links: [] });
+  similarityGraphData.set({ nodes: [], links: [] });
+  
+  try {
     // Perform the search
-    await search();
+    const { results } = await searchVectors(node.description, resultCount);
     
-    //}
-  };
+    console.log(`Found ${results?.length || 0} results for node double-click`, results);
+    
+    results.sort((a, b) => b.similarity - a.similarity);
+    console.log("Sorted results:", results);
+    
+    // Reset threshold to match current search
+    minDisplayThreshold = similarityThreshold;
+    displaySimilarityThreshold.set(similarityThreshold);
+    
+    if (!results || results.length === 0) {
+      // Clear all graph data if no results
+      compactGraphData.set({ nodes: [queryNode], links: [] });
+      expandedGraphData.set({ nodes: [queryNode], links: [] });
+      similarityGraphData.set({ nodes: [queryNode], links: [] });
+      return;
+    }
+    results[0].id = 'query';
+    searchResults.set(results);  
+    // Update graph data based on current view mode
+    
+    updateFilteredGraphData();
+    // Calculate the similarity matrix for all nodes. This will update $similarityGraphData, 
+    // adding links to the graph display
+    calculateFullSimilarityMatrix(results);
+    
+    updateSimilarityGraphData()
+    
+    console.log("Double-click search completed and updateFilteredGraphData called", results, get(searchResults));
+  } catch (error) {
+    console.error("Error in handle double click:", error);
+  }
+}
+async function clearGraphData() {
+  // Clear all graph data if no results
+  compactGraphData.set({ nodes: [], links: [] });
+  expandedGraphData.set({ nodes: [], links: [] });
+  similarityGraphData.set({ nodes: [], links: [] });
+  
+}
+// Function to search using result's embedding vector
+async function resultSearch(result) {
+  if (!result?.embedding || result.embedding.length === 0) {
+    console.error("Cannot search without result embedding");
+    return;
+  }
+  
+  console.log("Result search with embedding vector");
+  clearGraphData();
+
+  try {
+    // Use the embedding directly for search
+    const { error: matchError, data: response } = await supabase.rpc(
+      'match_vectors',
+      {
+        query_embedding: result.embedding,
+        match_threshold: similarityThreshold,
+        match_count: resultCount, 
+      }
+    );
+
+    if (matchError) {
+      console.error('Error searching documents:', matchError);
+      return;
+    }
+
+    if (!response || response.length === 0) {
+      console.log("No vector search results found");
+      return;
+    }
+    
+    // Process results similar to searchVectors function
+    const results = response.map((item) => {
+      // Process embedding - ensure it's an array
+      let embedding = item.notes_embedding;
+      
+      // If it's a string, try to parse it as JSON
+      if (typeof embedding === 'string') {
+        try {
+          embedding = JSON.parse(embedding);
+        } catch (e) {
+          console.error("Failed to parse embedding string:", e, " Splitting by ,");
+          // If parsing fails, split by commas as a fallback
+          embedding = embedding.split(',').map(Number);
+        }
+      }
+      
+      return {
+        id: item.id,
+        label: item.metadata.title || "Untitled",
+        description: item.metadata.notes || item.content || "No description available",
+        resources: item.metadata.resources || [],
+        tags: item.metadata.tags || [],
+        embedding: embedding,
+        similarity: item.similarity
+      };
+    });
+    
+    console.log(`Processed ${results.length} search results with embeddings`);
+    
+    // Sort results by similarity
+    results.sort((a, b) => b.similarity - a.similarity);
+    
+    // Reset threshold to match current search
+    minDisplayThreshold = similarityThreshold;
+    displaySimilarityThreshold.set(similarityThreshold);
+    
+    if (!results || results.length === 0) {
+      return;
+    }
+    
+    results[0].id = 'query';
+    searchResults.set(results);  
+    // Update graph data based on current view mode
+    
+    updateFilteredGraphData();
+    // Calculate the similarity matrix for all nodes. This will update $similarityGraphData, 
+    // adding links to the graph display
+    calculateFullSimilarityMatrix(results);
+    
+    updateSimilarityGraphData()
+    
+    console.log("Result search completed and updateFilteredGraphData called", results, get(searchResults));
+  } catch (error) {
+    console.error("Error in result search:", error);
+  }
+}
+
+// Handle text search
+async function handleTextSearch(searchText) {  // only for search from search bar
+  // tries to search vectors, or fallback to text search
+  console.log("handleTextSearch called");
+  if (!searchInput?.trim()) {
+    console.log("Empty search input, returning");
+    if (searchText) {
+      searchInput = searchText;
+    } else return;
+  }
+  const displayTitle = ' Search text : "' + searchInput + '"';
+  // Store the clicked node in a separate store for single-click details display
+  selectedDataset.set({
+    id: 'query',
+    label: displayTitle,
+    description: 'Click on a node to display more information, including links to resources.',
+    resources:  [],
+    tags:  [],
+  });
+  // Clear all graph data if no results
+  compactGraphData.set({ nodes: [], links: [] });
+  expandedGraphData.set({ nodes: [], links: [] });
+  similarityGraphData.set({ nodes: [], links: [] });
+
+  try {
+    console.log("Calling searchVectors with:", searchInput);
+  
+    const { results } = await searchVectors(searchInput, resultCount);  //reults must be the array of nodes
+
+    console.log("Search raw results:", results);
+    // results.sort((a, b) => b.similarity - a.similarity);
+    // console.log("Sorted results:", results);
+
+    if (!results || results.length === 0) {
+      console.log("No results found");
+      searchResults.set([]);
+      
+      // Clear graph data
+      compactGraphData.set({ nodes: [], links: [] });
+      expandedGraphData.set({ nodes: [], links: [] });
+      similarityGraphData.set({ nodes: [], links: [] });      
+      return;
+    }
+    
+    // Record search in history (works for both logged-in and non-logged-in users)
+    searchHistory.addSearch(searchInput, new Date().toISOString());
+    
+    // Ensure queryVector is an array
+    if (queryVector && typeof queryVector === 'string') {
+      try {
+        queryVector = JSON.parse(queryVector);
+      } catch (e) {
+        console.error("Failed to parse query vector string:", e);
+        queryVector = queryVector.split(',').map(Number);
+      }
+    }
+    
+    //console.log("Query vector type:", typeof queryVector);
+    //console.log("Query vector is array?", Array.isArray(queryVector));
+    
+    // Construct query node with embedding in the standardized location
+    const queryNode = {
+      id: 'query',
+      label: searchInput.length > 50 ? `${searchInput.slice(0, 47)}...` : searchInput,
+      description: searchInput,
+      embedding: Array.isArray(queryVector) ? queryVector : [], // Ensure vector is an array
+      similarity: 1.0, // Query node has perfect similarity to itself
+    };
+    
+    // Store the results with query node at index 0
+    const resultsWithQuery = [queryNode, ...results];
+    searchResults.set(resultsWithQuery);
+    
+    // Update min display threshold to match search threshold
+    minDisplayThreshold = similarityThreshold;
+    displaySimilarityThreshold.set(similarityThreshold);
+    
+    // Update graph data based on current view mode
+    updateFilteredGraphData(resultsWithQuery);  // updates copact and expanded graph data sets
+    
+    // Calculate the similarity matrix for all nodes. This will update $similarityGraphData, 
+    // adding links to the graph display
+    calculateFullSimilarityMatrix(results);
+    updateSimilarityGraphData();
+
+  } catch (error) {
+    console.error("Error in handleTextSearch:", error);
+  }
+}
+
 </script>
 <div class="landing-page">
-  <section class="hero">
-    <p class="subtitle">Discover connections in Alberta's open data through visual exploration</p>
-  </section>
-  
   <section class="main-content-section">
-    <div class="search-container">
-      <div class="search-input-wrapper">
-        <input
-          type="text"
-          bind:value={query}
-          placeholder="What data are you looking for?"
-          class="search-input"
-          on:keydown={(e) => {
-            if (e.key === 'Enter') {
-              document.querySelector('.search-button').click();
-            }
-          }}
-        />
-        <button on:click={search} class="search-button">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          Search
-        </button>
-      </div>
-      
-      <!-- Dataset details panel -->
-      {#if $selectedDataset}
-        <div class="dataset-details-panel">
-          <h3 class="panel-title">{$selectedDataset.payload.title}</h3>
-          
-          <!-- Notes field -->
-          {#if $selectedDataset.payload.notes}
-            <div class="dataset-notes">
-              <h4>Notes</h4>
-              <p>{$selectedDataset.payload.notes}</p>
+
+      <div class="left-panel">
+        <div class="search-container">
+          <div class="search-input-wrapper">
+            <div class="search-with-history">
+              <input
+                type="text"
+                bind:value={searchInput}
+                placeholder="What data are you looking for?"
+                class="search-input"
+                on:focus={() => showHistoryDropdown = $searchHistory.length > 0}
+                on:blur={() => setTimeout(() => showHistoryDropdown = false, 200)}
+                on:input={(e) => console.log("Input changed:", e.target.value, "searchInput:", searchInput)}
+                on:keydown={(e) => {
+                  if (e.key === 'Enter') {
+                    console.log("Enter pressed, searchInput:", searchInput);
+                    document.querySelector('.search-button').click();
+                  }
+                }}
+              />
+              
+              {#if showHistoryDropdown && $searchHistory.length > 0}
+                <div class="history-dropdown">
+                  <div class="dropdown-header">
+                    <span>Recent Searches</span>
+                    <button class="clear-history-btn" on:click|stopPropagation={(e) => {
+                      e.preventDefault();
+                      searchHistory.clearHistory();
+                    }}>
+                      Clear All
+                    </button>
+                  </div>
+                  <ul>
+                    {#each $searchHistory.slice(0, 5) as item}
+                      <li>
+                        <button on:click|stopPropagation={() => {
+                          searchInput = item.query;
+                          handleTextSearch();
+                          showHistoryDropdown = false;
+                        }}>
+                          <span class="history-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <circle cx="11" cy="11" r="8"></circle>
+                              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                          </span>
+                          <span class="history-query">{item.query}</span>
+                          <span class="history-date">{formatDate(item.timestamp)}</span>
+                        </button>
+                      </li>
+                    {/each}
+                  </ul>
+                </div>
+              {/if}
             </div>
-          {/if}
-          
-          <!-- Resources list -->
-          {#if $selectedDataset.payload.resources && $selectedDataset.payload.resources.length > 0}
-            <div class="dataset-resources">
-              <h4>Resources</h4>
-              <ul class="resources-list">
-                {#each $selectedDataset.payload.resources as resource}
-                  <li>
-                    <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                      {resource.name}
-                      <svg class="external-link-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                        <polyline points="15 3 21 3 21 9"></polyline>
-                        <line x1="10" y1="14" x2="21" y2="3"></line>
-                      </svg>
-                    </a>
-                  </li>
-                {/each}
-              </ul>
+            
+            <button on:click={handleTextSearch} aria-label="search" class="search-button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="graph-controls">
+            <label class="control-group">
+              <span class="control-label">View Mode:</span>
+              <select bind:value={$displayMode} class="mode-select">
+                <option value="compact">Compact</option>
+                <option value="expanded">Expanded</option>
+                <option value="similarity">Similarity Graph</option>
+              </select>
+            </label>
+
+            <label class="control-group">
+              <span class="control-label">Search Threshold:</span>
+              <input
+                type="range"
+                bind:value={similarityThreshold}
+                min="0.1"
+                max="0.9"
+                step="0.05"
+                class="threshold-slider"
+              />
+              <span class="threshold-value">{similarityThreshold}</span>
+            </label>
+            
+            <label class="control-group">
+              <span class="control-label">Display Threshold:</span>
+              <input
+                type="range"
+                bind:value={$displaySimilarityThreshold}
+                min={minDisplayThreshold}
+                max="1.0"
+                step="0.05"
+                class="threshold-slider"
+              />
+              <span class="threshold-value">{$displaySimilarityThreshold}</span>
+            </label>
+          </div>
+
+          <!-- Dataset details panel -->
+          {#if $selectedDataset}
+            <div class="dataset-details-panel">
+              <h3 class="panel-title">{$selectedDataset.label}</h3>
+
+              <!-- Description field -->
+              {#if $selectedDataset.description}
+                <div class="dataset-notes">
+                  <h4>Description</h4>
+                  <p>{$selectedDataset.description}</p>
+                </div>
+              {/if}
+
+              <!-- Resources list -->
+              {#if $selectedDataset.resources && $selectedDataset.resources.length > 0}
+                <div class="dataset-resources">
+                  <h4>Resources</h4>
+                  <ul class="resources-list">
+                    {#each $selectedDataset.resources as resource}
+                      <li>
+                        <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                          {resource.name}
+                          <svg class="external-link-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6m4-3h6v6m-11 1L21 3"/></svg>
+                        </a>
+                      </li>
+                    {/each}
+                  </ul>
+                </div>
+              {/if}
+
+              <!-- Tags list -->
+              {#if $selectedDataset.tags && $selectedDataset.tags.length > 0}
+                <div class="dataset-tags">
+                  <h4>Tags</h4>
+                  <ul class="tags-list">
+                    {#each $selectedDataset.tags as tag}
+                      <li>{tag.name}</li>
+                    {/each}
+                  </ul>
+                </div>
+              {/if}
             </div>
           {/if}
         </div>
-      {/if}
-    </div>
-
-    <div class="graph-container">
-      <Graph
-        {graphData}
-        onNodeClick={handleNodeClick}
-      />
-    </div>
-    
-    <!-- Debug Panel (hidden) -->
-    <div class="debug-panel" style="display: none;">
-      <h3>Debug Information</h3>
-      <ul>
-        <li><strong>Query:</strong> {query || "None"}</li>
-        <li><strong>Last API Call:</strong> {debugInfo.apiCall || "None"}</li>
-        <li><strong>Vector Result:</strong> {debugInfo.vectorResult || "N/A"}</li>
-        <li><strong>Qdrant Result:</strong> {debugInfo.qdrantResult || "N/A"}</li>
-        <li><strong>Graph Data:</strong> {debugInfo.graphDataUpdate || "N/A"}</li>
-        {#if debugInfo.error}
-          <li class="error"><strong>Error:</strong> {debugInfo.error}</li>
-        {/if}
-      </ul>
-    </div>
-  </section>
-
-  {#if $searchResults && $searchResults.length > 0}
-    <section class="results-section">
-      <h2>Search Results</h2>
-      <div class="accordion-results">
-        {#each $searchResults as result, i}
-          <div class="accordion-item">
-            <div 
-              class="accordion-header" 
-              on:click={() => toggleResultExpansion(result.id)}
-              on:keydown={(e) => e.key === 'Enter' && toggleResultExpansion(result.id)}
-              tabindex="0"
-              role="button"
-              aria-expanded={$expandedResults[result.id] ? 'true' : 'false'}
-            >
-              <span class="result-number">{i + 1}</span>
-              <h3 class="result-title">{result.payload.title || 'Untitled Dataset'}</h3>
-              <div class="accordion-actions">
-                <!-- <button class="secondary explore-btn" on:click={(e) => { e.stopPropagation(); handleNodeClick(result); }}>
-                  Explore
-                </button> -->
-                <div class="accordion-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class:rotated={$expandedResults[result.id]}>
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </div>
-              </div>
+      </div>
+      <div class="right-panel">
+        <div class="graph-container">
+          {#if $modelLoadError}
+            <div class="model-load-error">
+              <p>{$modelLoadError}</p>
             </div>
-            {#if $expandedResults[result.id]}
-              <div class="accordion-content">
-                <p class="result-description">{result.payload.description || 'No description available'}</p>
-                {#if result.payload.tags && result.payload.tags.length > 0}
-                  <div class="result-tags">
-                    {#each result.payload.tags as tag}
-                      <span class="tag">{tag.display_name}</span>
-                    {/each}
-                  </div>
-                {/if}
-                {#if result.payload.notes}
-                  <div class="result-notes">
-                    <h4>Notes</h4>
-                    <p>{result.payload.notes}</p>
-                  </div>
-                {/if}
-                {#if result.payload.resources && result.payload.resources.length > 0}
-                  <div class="result-resources">
-                    <h4>Resources</h4>
-                    <ul class="resources-list">
-                      {#each result.payload.resources as resource}
-                        <li>
-                          <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                            {resource.name}
-                            <svg class="external-link-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                              <polyline points="15 3 21 3 21 9"></polyline>
-                              <line x1="10" y1="14" x2="21" y2="3"></line>
-                            </svg>
-                          </a>
-                        </li>
-                      {/each}
-                    </ul>
-                  </div>
-                {/if}
+          {:else}
+            {#if $isModelLoading}
+              <div class="model-loading-indicator">
+                <p>Loading model... {$modelLoadingProgress}%</p>
               </div>
+            {:else}
+              {#if $displayMode === 'compact'}
+                <Graph data={$compactGraphData} onNodeClick={handleNodeClick} onNodeDblClick={handleDoubleClick}/>
+              {:else if $displayMode === 'expanded'}
+                <GraphExpanded data={$expandedGraphData} onNodeClick={handleNodeClick} onNodeDblClick={handleDoubleClick} />
+              {:else if $displayMode === 'similarity'}
+                <GraphSimilarity data={$similarityGraphData} onNodeClick={handleNodeClick} onNodeDblClick={handleDoubleClick} />
+              {/if}
             {/if}
-          </div>
-        {/each}
+          {/if}
+        </div>
+
+
+        {#if $searchResults && $searchResults.length > 0}
+          <section class="results-section">
+            <h2>Search Results</h2>
+            <div class="accordion-results">
+              {#each $searchResults as result, i}
+              {#if result.id !== 'query'}
+                <div class="accordion-item">
+                  <div
+                    class="accordion-header"
+                    on:click={(e) => {
+                      const currentTime = Date.now();
+                      if (currentTime - lastAccordionClick < doubleClickDelay) {
+                        // Double-click detected
+                        e.stopPropagation(); // Prevent toggling expansion
+                        resultSearch(result);
+                      } else {
+                        // Single click - toggle expansion
+                        toggleResultExpansion(result.id);
+                      }
+                      lastAccordionClick = currentTime;
+                    }}
+                    on:keydown={(e) => e.key === 'Enter' && toggleResultExpansion(result.id)}
+                    tabindex="0"
+                    role="button"
+                    aria-expanded={$expandedResults[result.id] ? 'true' : 'false'}
+                  >
+                    <h3 class="result-title">{result?.label || 'Untitled Dataset'}</h3>
+                    <div class="accordion-actions">
+                      <!-- <button class="secondary explore-btn" on:click={(e) => { e.stopPropagation(); handleNodeClick(result); }}>
+                        Explore
+                      </button> -->
+                      <div class="accordion-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class:rotated={$expandedResults[result.id]}>
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  {#if $expandedResults[result.id]}
+                    <div class="accordion-content">
+                    {#if result.description}
+                      <div class="result-notes">
+                        <h4>Description</h4>
+                        <p>{result.description}</p>
+                      </div>
+                    {/if}
+                    {#if result.resources && result.resources.length > 0}
+                          <div class="result-resources">
+                            <h4>Resources</h4>
+                            <ul class="resources-list">
+                              {#each result.resources as resource}
+                                <li>
+                                  <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                                    {resource.name}
+                                    <svg class="external-link-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6m4-3h6v6m-11 1L21 3"/></svg>
+                        </a>
+                      </li>
+                    {/each}
+                            </ul>
+                          </div>
+                    {/if}
+                    {#if result.tags && result.tags.length > 0}
+                      <div class="result-tags">
+                        {#each result.tags as tag}
+                          <span class="tag">{tag.display_name}</span>
+                        {/each}
+                      </div>
+                    {/if}
+                    </div>
+                  {/if}
+                </div>
+                
+              {/if}
+              {/each}
+            </div>
+          </section>
+        {:else if query}
+          <section class="no-results">
+            <div class="message info">
+              <p>No results found for "{query}". Try a different search term.</p>
+            </div>
+          </section>
+        {/if}
+
+
       </div>
-    </section>
-  {:else if query}
-    <section class="no-results">
-      <div class="message info">
-        <p>No results found for "{query}". Try a different search term.</p>
-      </div>
-    </section>
-  {/if}
+  </section>
 </div>
 
 <style>
+  /* Replace the global transition disable with specific layout elements */
+
   .landing-page {
+    width: 100%;
     display: flex;
     flex-direction: column;
-    width: 100%;
-  }
-
-  .hero {
-    text-align: center;
-    margin-bottom: var(--spacing-xl);
-  }
-
-  .subtitle {
-    color: var(--color-text-light);
-    font-size: 1.1rem;
-    margin-bottom: var(--spacing-xl);
+    min-height: 100vh;
+    background-color: var(--color-background);
+    color: var(--color-text);
   }
 
   .main-content-section {
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xl);
-    margin-bottom: var(--spacing-xl);
-  }
-
-  .search-container {
-    width: 100%;
-  }
-
-  .search-input-wrapper {
-    display: flex;
-    border-radius: var(--border-radius-lg);
-    overflow: hidden;
-    box-shadow: var(--shadow-md);
-    background-color: var(--color-background-alt);
-    border: 1px solid var(--color-border);
-  }
-
-  .search-input {
     flex: 1;
+    width: 100%;
+    min-height: 100vh;
+    height: auto;
     padding: var(--spacing-lg);
-    border: none;
-    font-size: 1.1rem;
-    margin: 0;
+    gap: var(--spacing-lg);
   }
 
-  .search-button {
-    background-color: var(--color-primary);
-    color: white;
-    border: none;
-    padding: var(--spacing-md) var(--spacing-xl);
-    cursor: pointer;
+  .left-panel {
+    width: 30dvw;
+    flex-shrink: 0;
+    height: auto;
+  }
+
+  .right-panel {
+     /*flex: 1;
+    min-width: 0; */
+    width: 65vw; 
     display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    font-weight: var(--font-weight-medium);
-    border-radius: 0;
-    margin: 0;
+    flex-direction: column;  /* Change to row layout */
+    gap: var(--spacing-md);
+    height: auto;
   }
 
-  .search-button:hover {
-    background-color: var(--color-primary-light);
-  }
-
+  
   .graph-container {
-    border-radius: var(--border-radius-lg);
-    overflow: hidden;
-    box-shadow: var(--shadow-md);
+    flex: 0 0 70vh;  /* Don't grow, don't shrink, start at 60vh */
+    min-height: 400px;  /* Minimum height fallback */
+    position: relative;
     background-color: var(--color-background-alt);
     border: 1px solid var(--color-border);
-    height: 500px;
-    width: 100%;
+    border-radius: var(--border-radius-md);
   }
 
-  /* Desktop layout */
+  /* Add this to prevent any layout transitions */
+
+
+  /* Remove or modify conflicting media queries */
   @media (min-width: 992px) {
     .main-content-section {
       flex-direction: row;
-      align-items: stretch;
+      transition: none;  /* Remove animation */
     }
-
-    .search-container {
-      width: 30%;
-      min-width: 300px;
-      padding-right: var(--spacing-md);
-    }
-
-    .graph-container {
-      width: 70%;
-      flex-grow: 1;
-      height: calc(100vh - var(--header-height) - var(--footer-height));
-    }
-  }
-
-  .results-section {
-    margin: var(--spacing-xxl) 0;
-  }
-
-  .results-section h2 {
-    margin-bottom: var(--spacing-lg);
-    color: var(--color-primary);
-  }
-  
-  /* Accordion styles */
-  .accordion-results {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    width: 100%;
-  }
-  
-  .accordion-item {
-    border-radius: var(--border-radius-md);
-    border: 1px solid var(--color-border);
-    background-color: var(--color-background-alt);
-    overflow: hidden;
-  }
-  
-  .accordion-header {
-    display: flex;
-    align-items: center;
-    padding: var(--spacing-md) var(--spacing-lg);
-    cursor: pointer;
-    position: relative;
-    background-color: var(--color-background-alt);
-    transition: background-color 0.2s;
-  }
-  
-  .accordion-header:hover {
-    background-color: rgba(0, 0, 0, 0.02);
-  }
-  
-  .accordion-content {
-    padding: var(--spacing-lg);
-    border-top: 1px solid var(--color-border);
-    background-color: var(--color-background);
-  }
-  
-  .accordion-actions {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-  }
-  
-  .accordion-icon {
-    margin-left: var(--spacing-sm);
-    transition: transform 0.3s ease;
-  }
-  
-  .accordion-icon svg.rotated {
-    transform: rotate(180deg);
-  }
-    
-    /* .explore-btn {
-    padding: var(--spacing-xs) var(--spacing-md);
-    font-size: 0.9rem;
-    z-index: 2;
-    } */
-    
-  .result-number {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    min-width: 24px;
-    background-color: var(--color-primary);
-    color: white;
-    border-radius: 50%;
-    font-size: 0.85rem;
-    font-weight: var(--font-weight-bold);
-    margin-right: var(--spacing-md);
-  }
-  
-  .result-title {
-    font-size: 1.1rem;
-    margin: 0;
-    color: var(--color-primary);
-    flex: 1;
-  }
-  
-  .result-description {
-    color: var(--color-text-light);
-    font-size: 0.95rem;
-    margin-bottom: var(--spacing-md);
-    line-height: 1.5;
-  }
-  
-  .result-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-xs);
-    margin-bottom: var(--spacing-md);
-  }
-  
-  .tag {
-    background-color: rgba(61, 108, 81, 0.1);
-    color: var(--color-secondary);
-    padding: 2px 8px;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.8rem;
-    font-weight: var(--font-weight-medium);
-  }
-  
-  .result-notes,
-  .result-resources {
-    margin-top: var(--spacing-md);
-  }
-  
-  .result-notes h4,
-  .result-resources h4 {
-    font-size: 1rem;
-    margin-bottom: var(--spacing-xs);
-    color: var(--color-text);
-  }
-
-  .no-results {
-    margin: var(--spacing-xl) 0;
-    max-width: 700px;
-    margin: var(--spacing-xl) auto;
   }
 
   @media (max-width: 992px) {
     .main-content-section {
       flex-direction: column;
+      transition: none;  /* Remove animation */
     }
     
     .search-container,
     .graph-container {
       width: 100%;
+      transition: none;  /* Remove animation */
     }
   }
 
@@ -850,93 +1168,324 @@
     }
   }
   
-  /* Dataset details panel styles */
+ .results-section {
+  flex: 1;  /* Take up remaining space */
+  display: flex;
+  flex-direction: column;
+  height: auto;  /* Remove fixed height */
+  min-height: 0;  /* Allow container to shrink if needed */
+}
+
+  .result-title {
+    font-size: 1.1rem;
+    margin: 0;
+    color: var(--color-primary);
+    flex: 1;
+  }
+  
+  .accordion-results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .accordion-item {
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+  }
+
+  .accordion-header {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    cursor: pointer;
+    position: relative;
+    background-color: var(--color-background-alt);
+    transition: background-color 0.2s ease;
+  }
+  .accordion-header:hover {
+    background: var(--color-background-hover);
+  }
+
+  .accordion-content {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--color-border);
+    transition: all 0.2s ease;
+  }
+
+  .accordion-icon svg {
+    transition: transform 0.2s ease;
+  }
+
+  .accordion-icon svg.rotated {
+    transform: rotate(180deg);
+  }
+
+  .search-container {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: var(--spacing-lg);
+  }
+  
+  .search-input-wrapper {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: var(--spacing-md);
+    height: 42px; /* Set a specific height for the wrapper */
+  }
+  
+  .search-input {
+    flex-grow: 1;
+    padding: 0 var(--spacing-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md) 0 0 var(--border-radius-md);
+    font-size: var(--font-size-md);
+    color: var(--color-text);
+    background-color: var(--color-background-alt);
+    height: 100%;
+    border-right: none;
+  }
+  
+  .search-button {
+    width: 42px; /* Match height for perfect square */
+    height: 100%;
+    padding: 0;
+    background-color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-light);
+  }
+  
+  .search-button:hover {
+    background-color: var(--color-primary-dark);
+  }
+  
   .dataset-details-panel {
     margin-top: var(--spacing-lg);
-    padding: var(--spacing-lg);
-    background-color: var(--color-background-alt);
-    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
     border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-sm);
+    border-radius: var(--border-radius-md);
+    background-color: var(--color-background-alt);
   }
   
   .panel-title {
-    color: var(--color-primary);
-    font-size: 1.2rem;
-    margin-top: 0;
+    font-size: var(--font-size-lg);
     margin-bottom: var(--spacing-md);
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: var(--spacing-sm);
   }
   
-  .dataset-notes h4,
-  .dataset-resources h4 {
-    font-size: 1rem;
+  .dataset-notes {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .dataset-notes h4 {
+    font-size: var(--font-size-md);
     margin-bottom: var(--spacing-sm);
-    color: var(--color-text);
   }
   
-  .dataset-notes p {
-    color: var(--color-text-light);
-    font-size: 0.95rem;
-    line-height: 1.5;
+  .dataset-resources {
     margin-bottom: var(--spacing-md);
+  }
+  
+  .dataset-resources h4 {
+    font-size: var(--font-size-md);
+    margin-bottom: var(--spacing-sm);
   }
   
   .resources-list {
     list-style: none;
     padding: 0;
-    margin: 0;
   }
   
   .resources-list li {
-    margin-bottom: var(--spacing-xs);
+    margin-bottom: var (--spacing-sm);
   }
   
-  .resources-list a {
-    display: flex;
-    align-items: center;
+  .resources-list li a {
     color: var(--color-primary);
     text-decoration: none;
-    font-size: 0.9rem;
-    padding: var(--spacing-sm) 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
   }
   
-  .resources-list a:hover {
-    color: var(--color-primary-light);
+  .resources-list li a:hover {
+    text-decoration: underline;
   }
   
   .external-link-icon {
     margin-left: var(--spacing-sm);
-    opacity: 0.6;
   }
   
-  /* Debug panel styles */
-  .debug-panel {
-    margin-top: var(--spacing-lg);
+  .dataset-tags {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .dataset-tags h4 {
+    font-size: var(--font-size-md);
+    margin-bottom: var (--spacing-sm);
+  }
+  
+  .tags-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  .tags-list li {
+    margin-right: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-sm);
+    background-color: var(--color-background);
+  }
+  
+  .model-load-error {
+    color: var(--color-error);
     padding: var(--spacing-md);
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: var(--border-radius-md);
+    text-align: center;
   }
   
-  .debug-panel h3 {
-    margin-top: 0;
-    font-size: 1rem;
-    color: #495057;
+  .model-loading-indicator {
+    padding: var(--spacing-md);
+    text-align: center;
   }
-  
-  .debug-panel ul {
-    margin: 0;
-    padding-left: var(--spacing-lg);
+
+  .graph-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
   }
-  
-  .debug-panel li {
-    margin-bottom: var(--spacing-xs);
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
   }
-  
-  .debug-panel .error {
-    color: #dc3545;
+
+  .control-label {
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
   }
+
+  .mode-select,
+  .threshold-slider {
+    padding: 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var (--border-radius-sm);
+    background-color: var(--color-background-alt);
+    color: var(--color-text);
+  }
+
+  .threshold-slider {
+    width: 150px;
+  }
+
+  .threshold-value {
+    margin-left: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+
+  .search-with-history {
+  position: relative;
+  flex: 1;
+}
+
+.history-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--color-background-alt);
+  border: 1px solid var(--color-border);
+  border-top: none;
+  border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  color: var(--color-text-light);
+}
+
+.clear-history-btn {
+  background: none;
+  border: none;
+  color: var(--color-error);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.clear-history-btn:hover {
+  text-decoration: underline;
+}
+
+.history-dropdown ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.history-dropdown li {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.history-dropdown li:last-child {
+  border-bottom: none;
+}
+
+.history-dropdown button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.history-dropdown button:hover {
+  background-color: var(--color-background-hover);
+}
+
+.history-icon {
+  margin-right: var(--spacing-sm);
+  color: var(--color-text-light);
+}
+
+.history-query {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: var(--spacing-md);
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+}
+
+.history-date {
+  margin-left: var(--spacing-md);
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+}
 </style>

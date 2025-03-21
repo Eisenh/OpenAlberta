@@ -45,6 +45,11 @@
           console.log('Admin status verified via app_metadata only');
         }
       }
+
+      // Sync local search history to Supabase
+      await searchHistory.syncToSupabase();
+  
+
     } else {
       navigate('/login');
     }

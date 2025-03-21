@@ -42,7 +42,8 @@
   let isModelLoading = writable(false);
   let modelLoadingProgress = writable(0);
   let modelLoadError = writable(null);
-  
+  let searchInput = '';
+
   // Store the model instance for reuse - use a writable store to ensure reactivity
   const modelInstance = writable(null);
   // Flag to track if we've already attempted to load the model
@@ -152,7 +153,7 @@
         const  output = await $modelInstance(text, { pooling: "mean", normalize: true });
         // Extract the embedding output
         const embedding = Array.from(output.data)
-        console.log("Embedding generated successfully ", embedding);
+        console.log("Embedding generated successfully line 155", embedding);
         console.log('Data Type:', typeof embedding);
         console.log('result.data Length:', embedding.length);
         
@@ -174,7 +175,7 @@
             const output = await embedder(text, { pooling: "mean", normalize: true });
             // Extract the embedding output
             const embedding = Array.from(output.data)
-            console.log("Embedding generated successfully");
+            console.log("Embedding generated successfully line 177", embedding);
             return embedding; //Array.from(result.data);  //embeddding vector
           } else {
             throw new Error("Failed to load model");
@@ -242,203 +243,179 @@
     }
   }
 
-  async function searchVectors(queryText) {
-    try {
-      // If we have a model instance, use it for vector search
-      if ($modelInstance) {
-        console.log("Using vector search with loaded model");
-        let queryVector = [];
-        try {
-
-          queryVector = [...(await generateEmbedding(queryText))];
-          //console.log('Query Vector:', queryVector);
-          //console.log('Data Type:', typeof queryVector);
-          //console.log('Array Length:', queryVector.length);
-          //console.log('First 5 Values:', queryVector.slice(0, 5));
-          //let qv = Array.from(queryVector.data);
-          //console.log('Array from Query Vector:', qv);
-          //console.log("Embedding generated, searching vectors...", queryVector);
-          
-          const { error: matchError, data: response } = await supabase.rpc(
-            'match_vectors',
-            {
-              query_embedding: queryVector,
-              match_threshold: 0.3,
-              match_count: 9,
-              //min_content_length: 50,
-            }
-          );  //match_vectors 
-          if (matchError) {
-            console.error('Error searching documents:', matchError);
-            return [];
+// First, let's modify the searchVectors function to return consistent data structure
+async function searchVectors(queryText) {
+  try {
+    if ($modelInstance) {
+      console.log("Using vector search with loaded model");
+      let queryVector = [];
+      try {
+        queryVector = [...(await generateEmbedding(queryText))];
+        
+        const { error: matchError, data: response } = await supabase.rpc(
+          'match_vectors',
+          {
+            query_embedding: queryVector,
+            match_threshold: 0.3,
+            match_count: 9, // Get 9 to account for potential self-match
           }
-          console.log("Embedding generated, searching vectors...", queryVector);
+        );
 
-          // Ensure embedding is properly formatted before sending to Supabase
-          /*const embeddingArray = Array.isArray(embedding.tolist()) 
-            ? embedding.tolist() 
-            : Object.values(embedding.tolist());
-          console.log("First 5 embedding values:", embeddingArray.slice(0, 5));
-          
-          const response = await supabase
-            .from('docs')
-            .select('id, created_at, metadata, package')
-            .rpc('match_notes_embeddings', { 
-              query_embedding: embeddingArray,
-              match_threshold: 0.5,
-              match_count: 8
-            });
-          
-          
-          if (response.error) throw response.error;
-          */
-          //console.log("Search response received from Supabase ", response);
-          
-          //const data = response.data;
-          
-          if (!response || response.length === 0) {
-            console.log("No vector search results found");
-            return [];
-          }
-          
-          return response.map((item, index) => ({
-            id: item.id,
-            payload: {
-              title: item.metadata.title || "Untitled",
-              description: item.metadata.notes || item.content || "No description available",
-              //notes: item.metadata.notes,
-              resources: item.metadata.resources || [],
-              tags: item.metadata.tags || []
-            },
-            score: 1 - (index * 0.2) // Temporary scoring until we get real distances
-          }));
-        } catch (error) {
-          console.error("Vector search failed:", error);
-          throw error;
+        if (matchError) {
+          console.error('Error searching documents:', matchError);
+          return { results: [], queryText };
         }
-      } else {
-        // If we don't have a model instance, use text search
-        console.log("No model available, using text search");
-        
-        // Use a simple ILIKE query instead of textSearch since metadata is JSONB
-        const { data, error } = await supabase
-          .from('docs')
-          .select('id, created_at, metadata, package')
-          .or(`metadata->>title.ilike.%${queryText}%,metadata->>description.ilike.%${queryText}%,metadata->>notes.ilike.%${queryText}%`)
-          .limit(8);
-        
-        if (error) {
-          console.error("Text search error:", error);
-          throw error;
+
+        if (!response || response.length === 0) {
+          console.log("No vector search results found");
+          return { results: [], queryText };
         }
-        
-        if (!data || data.length === 0) {
-          console.log("No results found in text search");
-          return [];
-        }
-        
-        //console.log(`Found ${data.length} results using text search`);
-        
-        return data.map((item, index) => ({
+
+        const results = response.map((item) => ({
           id: item.id,
-          payload: {
+          payload: {  // Wrap in payload to match fallback structure
             title: item.metadata.title || "Untitled",
-            description: item.metadata.description || item.content || "No description available",
-            notes: item.metadata.notes,
+            description: item.metadata.notes || item.content || "No description available",
             resources: item.metadata.resources || [],
-            tags: item.metadata.tags || []
+            tags: item.metadata.tags || [],
+            notes: item.metadata.notes
           },
-          score: 1 - (index * 0.1)
+          similarity: item.similarity
         }));
-      }
-    } catch (error) {
-      console.error("Search error:", error);
-      throw error;
-    }
-  };
-  
-  // search performs a searchVectors call and updates the searchResults store, 
-  // and passes graph data for display
-  const search = async () => {
-    if (!query) return;
-    
-    debugInfo.error = null;
-    console.log("Starting search with query:", query);
-    
-    try {
-      debugInfo.apiCall = `Searching for: ${query}`;
-      
-      const searchResponse = await searchVectors(query);
-      console.log("Search response:", searchResponse);
-      debugInfo.searchResult = `✓ Results: ${searchResponse.length} items`;
-      
-      if (!searchResponse?.length) {
-        console.log("No results found");
-        searchResults.set([]);
-        return;
-      }
 
-      const processedResults = searchResponse.map(item => ({
+        return { results, queryText };
+      } catch (error) {
+        console.error("Error in vector search:", error);
+        return { results: [], queryText };
+      }
+    } else {
+      // Fallback to text search with same return structure
+      const { data, error } = await supabase
+        .from('docs')
+        .select('id, metadata')
+        .or(`metadata->>title.ilike.%${queryText}%,metadata->>notes.ilike.%${queryText}%`)
+        .limit(8);
+
+      if (error) throw error;
+
+      const results = (data || []).map((item, index) => ({
         id: item.id,
-        payload: item.payload,
-        score: item.score
+        payload: {
+          title: item.metadata.title || "Untitled",
+          description: item.metadata.notes || "No description available",
+          resources: item.metadata.resources || [],
+          tags: item.metadata.tags || [],
+          notes: item.metadata.notes
+        },
+        similarity: 1 - (index * 0.1)
       }));
 
-      searchResults.set(processedResults);
-      
-      const nodes = processedResults.map((result, index) => ({
-        id: result.id,
-        label: result.payload.title,
-        description: result.payload.description,
-        score: result.score
-      }));
+      return { results, queryText };
+    }
+  } catch (error) {
+    console.error("Search error:", error);
+    return { results: [], queryText };
+  }
+}
 
-      const links = nodes.map(node => ({
-        source: 'query',
-        target: node.id,
-        label: `Similarity match`,
-        weight: node.score
-      }));
-
-      const newGraphData = { 
-        nodes: [{ 
-          id: 'query', 
-          label: query.split(' ').slice(0, 5).join(' ') + (query.split(' ').length > 5 ? '...' : ''),
-          type: 'query', 
-          description: query 
-        }, ...nodes], 
-        links 
-      };
-      
-      graphData.set(newGraphData);
-      debugInfo.graphDataUpdate = `✓ Graph data: ${nodes.length} nodes, ${links.length} links`;
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        searchHistory.addSearch(query, new Date().toISOString());
-      }
-    } catch (error) {
-      console.error("Search error:", error);
-      debugInfo.error = `Error: ${error.message}`;
-      searchResults.set([]);
+// Fix the handleNodeClick function
+async function handleNodeClick(node) {
+  if (node.id === 'query') return;
+  
+  const { results } = await searchVectors(node.description);
+  
+  if (!results || results.length === 0) {
+    console.log("No results found for node click");
+    return;
+  }
+  
+  // Set the clicked node as the selected dataset
+  const clickedDataset = results.find(result => result.id === node.id) || {
+    id: node.id,
+    payload: {
+      title: node.label || 'Untitled',
+      description: node.description || 'No description available',
+      notes: node.notes,
+      resources: node.resources || [],
+      tags: node.tags || []
     }
   };
+  selectedDataset.set(clickedDataset);
 
-  const handleNodeClick = async (node) => {
-    if (node.id === 'query') return;
-    setSelectedDataset(node.id);
-    
-    // Store the clicked node's label to use as the new query node label
-    const clickedNodeLabel = node.label || '';
-    
-    // Set the query text to the node's description
-    query = node.description;
-    
-    // Perform the search
-    await search();
-    
-    //}
-  };
+  // Transform results into graph data
+  const graphNodes = [
+    {
+      id: 'query',
+      label: node.label || 'Untitled', // Use the clicked node's title/label
+      description: node.description,    // Keep description for hover tooltip
+      originalId: node.id,
+      type: 'query'
+    },
+    ...results
+      .filter(result => result.id !== node.id)
+      .slice(0, 8)
+      .map(result => ({
+        id: result.id,
+        label: result.payload.title || 'Untitled',
+        description: result.payload.description || 'No description available',
+        type: 'result',
+        similarity: result.similarity
+      }))
+  ];
+
+  const graphLinks = graphNodes
+    .filter(n => n.id !== 'query')
+    .map(node => ({
+      source: 'query',
+      target: node.id,
+      weight: node.similarity || 0.5,
+      classes: "debug"
+    }));
+
+  console.log("Node click - Updating graph with:", { nodes: graphNodes, links: graphLinks });
+  graphData.set({ nodes: graphNodes, links: graphLinks });
+  searchResults.set(results);
+}
+
+// Fix the handleTextSearch function
+async function handleTextSearch() {
+  if (!searchInput?.trim()) return;
+  
+  const { results } = await searchVectors(searchInput);
+  
+  if (!results || results.length === 0) {
+    console.log("No results found");
+    searchResults.set([]);
+    return;
+  }
+
+  const graphNodes = [
+    {
+      id: 'query',
+      label: searchInput.length > 50 ? `${searchInput.slice(0, 47)}...` : searchInput,
+      description: searchInput,
+      type: 'query'
+    },
+    ...results.slice(0, 8).map(result => ({
+      id: result.id,
+      label: result.payload.title || 'Untitled',
+      description: result.payload.description || 'No description available',
+      type: 'result',
+      similarity: result.similarity
+    }))
+  ];
+
+const graphLinks = results.slice(0, 8).map(result => ({
+    source: 'query',
+    target: result.id,
+    weight: result.similarity || 0.5,
+    classes: "debug"
+  }));
+
+  console.log("Text search - Updating graph with:", { nodes: graphNodes, links: graphLinks });
+  graphData.set({ nodes: graphNodes, links: graphLinks });
+  searchResults.set(results);
+}
 </script>
 <div class="landing-page">
   <section class="hero">
@@ -446,11 +423,11 @@
   </section>
   
   <section class="main-content-section">
-    <div class="search-container">
+    <div class="search-container"> 
       <div class="search-input-wrapper">
         <input
           type="text"
-          bind:value={query}
+          bind:value={searchInput}
           placeholder="What data are you looking for?"
           class="search-input"
           on:keydown={(e) => {
@@ -459,7 +436,7 @@
             }
           }}
         />
-        <button on:click={search} class="search-button">
+        <button on:click={handleTextSearch} class="search-button">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -467,7 +444,6 @@
           Search
         </button>
       </div>
-      
       <!-- Dataset details panel -->
       {#if $selectedDataset}
         <div class="dataset-details-panel">
@@ -503,7 +479,9 @@
           {/if}
         </div>
       {/if}
+    
     </div>
+    
 
     <div class="graph-container">
       <Graph
@@ -543,7 +521,7 @@
               aria-expanded={$expandedResults[result.id] ? 'true' : 'false'}
             >
               <span class="result-number">{i + 1}</span>
-              <h3 class="result-title">{result.payload.title || 'Untitled Dataset'}</h3>
+              <h3 class="result-title">{result.payload?.title || 'Untitled Dataset'}</h3>
               <div class="accordion-actions">
                 <!-- <button class="secondary explore-btn" on:click={(e) => { e.stopPropagation(); handleNodeClick(result); }}>
                   Explore
@@ -557,7 +535,7 @@
             </div>
             {#if $expandedResults[result.id]}
               <div class="accordion-content">
-                <p class="result-description">{result.payload.description || 'No description available'}</p>
+                <p class="result-description">{result.payload?.description || 'No description available'}</p>
                 {#if result.payload.tags && result.payload.tags.length > 0}
                   <div class="result-tags">
                     {#each result.payload.tags as tag}
