@@ -747,7 +747,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
   selectedDataset.set({
     id: 'query',
     label: displayTitle,
-    description: 'Click on a node to display more information, including links to resources.',
+    description: 'Click on a node to display more information, including links to resources. Raise the similarity threshold slider to limit the results to those tht seem more similar to the search term.',
     resources:  [],
     tags:  [],
   });
