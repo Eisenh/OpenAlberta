@@ -66,14 +66,16 @@
   }
   
   function formatDate(timestamp) {
-    const date = new Date(timestamp);
-    return new Intl.DateTimeFormat('en-CA', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+    if (timestmp) {
+      const date = new Date(timestamp);
+      return new Intl.DateTimeFormat('en-CA', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    } else return "";
   }
   
   function getUserInitials(email) {

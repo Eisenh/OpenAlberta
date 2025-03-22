@@ -12,6 +12,7 @@
     calculateSimilarityMatrix, 
     filterGraphByThreshold 
   } from '../utils/similarity';
+  import { displaySimilarityThreshold } from '../stores/graphSettings';
   //import {jLouvain } from '../utils/louvain';
   
   //console.log("Local Model Path:", import.meta.env.BASE_URL + "models/");
@@ -39,7 +40,6 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
   
   // Search and display thresholds
   let similarityThreshold = 0.3; // Search threshold
-  let displaySimilarityThreshold = writable(0.3); // Display threshold - starts at search threshold
   let minDisplayThreshold = 0.3; // Minimum display threshold (same as search threshold initially)
   let resultCount = 50; // Maximum number of results to fetch
   
@@ -72,6 +72,7 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
   $: if ($displaySimilarityThreshold !== undefined && $searchResults && $searchResults.length > 0) {
     console.log("Display similarity threshold changed to", $displaySimilarityThreshold, "updating graph data");
     if ($searchResults.length > 0) {
+      // Using store value for display of edges and nodes with graph componets
       updateFilteredGraphData();  //triggers updates
       //updateSimilarityGraphData();
     }
@@ -167,17 +168,15 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
     }
       updateExpandedGraphData(filteredNodes);  //puts filtered data into expandedGraphData
       updateCompactGraphData(filteredNodes);
-      //updateSimilarityGraphData(filteredNodes);  // this should display the nodes without all the node-node links.
+      calculateFullSimilarityMatrix(filteredNodes);
+      updateSimilarityGraphData(filteredNodes);  // this should display the nodes without all the node-node links.
   }
   
-  /**
-   * Update the similarity graph data with node-to-node connections
-   * @param {Array} filteredNodes - Array of nodes with query node at index 0
-   */
   function initializeSimilarityGraphData() {
     // already includes nodes and queryNode-node edges, and should be filtered already
     const graphData = $expandedGraphData;  
     const links = graphData.links;
+    const nodes = graphData.nodes;
     // Get the current threshold
     const currentThreshold = get(displaySimilarityThreshold);
     // Add links between result nodes based on similarity matrix
@@ -203,11 +202,11 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
     
     // Update the similarity graph data store
     similarityGraphData.set({
-      nodes: filteredNodes,
+      nodes: nodes,
       links: links
     });
         
-    console.log("Updated similarityGraphData with", filteredNodes.length, "nodes and", links.length, "links");
+    console.log("Updated similarityGraphData with", nodes.length, "nodes and", links.length, "links");
   }
 
   function updateSimilarityGraphData(filtered) {

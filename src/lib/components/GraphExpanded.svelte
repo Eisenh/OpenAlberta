@@ -124,7 +124,7 @@
         style: {
           //"width": 'data(weight)',  // Width based on weight
           "line-color": "#E0E0E0", // border color
-          "curve-style": "bezier",
+          //"curve-style": "bezier",
           //"target-arrow-shape": "triangle",
           "target-arrow-color": "#E0E0E0", // border color
           "opacity": .9,

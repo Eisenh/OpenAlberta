@@ -4,6 +4,7 @@
   import cytoscape from "cytoscape";
   import { get } from "svelte/store";
   import fcose from "cytoscape-fcose";
+  import { displaySimilarityThreshold } from "../stores/graphSettings.js";
   
 
   export let data;
@@ -41,7 +42,6 @@
   function scaleElementsOnZoom(graph) {
     zoom = graph.zoom();
     //console.log("Zoom event fired! Current zoom level:", zoom);
-    
     let scaleFactor = 1 / (zoom);
     //scaleFactor = Math.max(minScaleFactor, Math.min(scaleFactor, maxScaleFactor)); // Keep in range
     const fontsize = 12 * scaleFactor + "px";
@@ -59,8 +59,11 @@
 
     graph.edges().forEach(link => {
       let baseWeight = 10 * (link.data('weight') - edgeMin) +1; // TODO add to links on initialiation
+      
+      //const display = (threshold > link.data('weight')) ? 'none' : '';
       //console.log("scalefactor ", scaleFactor, " weight ", link.data('weight'), " basewidth ", baseWeight);
       link.style('width', baseWeight * scaleFactor);
+      //link.style('display', display);
          
     });
            
@@ -222,17 +225,13 @@
         // Remove existing elements
         cy.elements().remove();
 
-        //let nodes = data.nodes;
-        //let queryLink = data.links.filter(edge => edge.source === 'query');
-        //let nonqueryLink = data.links.filter(edge => !(edge.source === 'query'));
-        //let links = data.links;//.filter(edge => edge.weight >= (edgeMid + edgeMax)/2);;
-        
+        const minDistance = 5;  // Minimum distance from center
+        const maxDistance = 100; // Maximum distance from center
+        const threshold = get(displaySimilarityThreshold);
         // Add new elements
         // Add nodes with initial positions based on similarity
         const nodes = data.nodes.map((node, index) => {
            // Calculate radius inversely proportional to similarity
-          const minDistance = 5;  // Minimum distance from center
-          const maxDistance = 100; // Maximum distance from center
           let normSim = 0;
           // Use similarity to determine radius - higher similarity means closer to center
           // Default to maxDistance if similarity is missing or too low
@@ -244,7 +243,7 @@
           node.normsim = normSim;
           node.distance = minDistance + minDistance / normSim;// * (simMax - similarity)/(simMax - simMin) ;
           node.diameter = Math.max(10 + 20 * normSim, 20);
-
+       
             // Query Node
           if (node.id === 'query') { //(node.id === 'query') {
             node.distance = 0;// * (simMax - similarity)/(simMax - simMin) ;
@@ -309,14 +308,16 @@
         cy.edges().forEach((edge, index) => {
           const weight = edge.data('normwt') || 0.1;
           const isQueryLink = edge.data('source') === 'query';
-          const opacity = Math.min(1, 0.1 + weight * 0.9);
+          const opacity =  Math.min(1, 0.1 + weight * 0.9);
+          const display = (weight > threshold) ? '': 'none';
           const csscolor =  `rgba(100, 100, 100, ${opacity})`;
           
           edge.style({
             'width': 1 + weight * 9,
             'line-color': isQueryLink ? '#F3A73C' : csscolor,
             'opacity': opacity,
-            'target-arrow-color': isQueryLink ? '#F3A73C' : csscolor
+            'target-arrow-color': isQueryLink ? '#F3A73C' : csscolor,
+            'display' : display 
           });
         });
         //console.log("cy graph ", cy);
