@@ -27,10 +27,11 @@ export default defineConfig(({ mode }) => {
     : {};
 
   return {
-    base: "/", // Use "/" unless you need a specific subpath
+    base: "/OpenAlberta", // Use "/" unless you need a specific subpath
     publicDir: 'public',
     define: {
-      "process.env": env,
+      // This ensures environment variables are properly replaced during build
+     "process.env": env,
     },
     plugins: [svelte()],
     resolve: {

@@ -239,16 +239,16 @@
           const similarity = node.similarity || 0.3;
           if (simMax === simMin) {
             normSim = 1; 
-          } else normSim = Math.max((similarity - simMin) / (simMax - simMin), 0.1); 
+          } else normSim = Math.max((similarity - simMin) / (simMax - simMin), 0.1); //
             //0-1
           node.normsim = normSim;
           node.distance = minDistance + minDistance / normSim;// * (simMax - similarity)/(simMax - simMin) ;
-          node.diameter = 10 + 20 * normSim;
+          node.diameter = Math.max(10 + 20 * normSim, 20);
 
             // Query Node
           if (node.id === 'query') { //(node.id === 'query') {
             node.distance = 0;// * (simMax - similarity)/(simMax - simMin) ;
-            //node.diameter = 20;
+            node.diameter = 30;
             node.normsim =1;
             return {
               data: { ...node },

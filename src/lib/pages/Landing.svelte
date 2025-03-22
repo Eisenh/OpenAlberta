@@ -214,7 +214,7 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
     // already includes nodes and queryNode-node edges, and should be filtered already
     
     const simGraphData = get(expandedGraphData);  
-    
+    const nodes = simGraphData.nodes;
     const links = simGraphData.links;
     // Get the current threshold
     const currentThreshold = get(displaySimilarityThreshold);
@@ -312,13 +312,15 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
   });
   
   function formatDate(timestamp) {
-    const date = new Date(timestamp);
-    return new Intl.DateTimeFormat('en-CA', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+    if (timestamp){
+      const date = new Date(timestamp);
+      return new Intl.DateTimeFormat('en-CA', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    } else return " "
   }
   const generateEmbedding = async (text) => {
     // If we don't have a model instance and we've already attempted to load it,
@@ -872,7 +874,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
                             </svg>
                           </span>
                           <span class="history-query">{item.query}</span>
-                          <span class="history-date">{formatDate(item.timestamp)}</span>
+                          <span class="history-date">{formatDate(item.created_at)}</span>
                         </button>
                       </li>
                     {/each}

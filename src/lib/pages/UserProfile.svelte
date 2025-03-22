@@ -145,7 +145,7 @@
                   <span class="query-text">{item.query}</span>
                 </div>
                 <div class="search-timestamp">
-                  {formatDate(item.timestamp)}
+                  {formatDate(item.created_at)}
                 </div>
               </li>
             {/each}
