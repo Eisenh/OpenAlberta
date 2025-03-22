@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>OpenDataABOnline</title>
+  <script type="text/javascript">
+    // Single Page Apps for GitHub Pages
+    // MIT License
+    // https://github.com/rafgraph/spa-github-pages
+    // This script takes the current URL and redirects to the same path at the
+    // main index.html file, allowing client-side routing to handle the path
+    (function(l) {
+      if (l.search[1] === '/' ) {
+        var decoded = l.search.slice(1).split('&').map(function(s) { 
+          return s.replace(/~and~/g, '&')
+        }).join('?');
+        window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+        );
+      }
+    }(window.location))
+    
+    // Get the base path from the <base> tag if it exists, or default to '/'
+    var basePath = document.querySelector('base') ? document.querySelector('base').getAttribute('href') : '/';
+    
+    // Redirect to the index page with the current path
+    var segmentCount = 0;
+    var location = window.location;
+    
+    // GitHub Pages serves 404.html from the repo root, so we need to redirect
+    // to the correct path based on the repository name (which is encoded in the base path)
+    var redirectUrl = location.protocol + '//' + location.hostname + 
+                     (location.port ? ':' + location.port : '') + 
+                     basePath.replace(/\/$/, '') + 
+                     '/?p=' + location.pathname.slice(1).replace(/&/g, '~and~') +
+                     (location.search ? '&q=' + location.search.slice(1).replace(/&/g, '~and~') : '') +
+                     (location.hash || '');
+                     
+    window.location.replace(redirectUrl);
+  </script>
+</head>
+<body>
+  <h1>Redirecting...</h1>
+  <p>
+    If you are not redirected automatically, follow this 
+    <a href="/">link to the homepage</a>.
+  </p>
+</body>
+</html>
