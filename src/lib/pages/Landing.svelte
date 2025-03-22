@@ -158,7 +158,6 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
     );
     
     if (filteredNodes.length === 0) {
-      
       console.warn("No nodes meet the display threshold:", currentThreshold);
       compactGraphData.set({ nodes: [queryNode], links: [] });
       expandedGraphData.set({ nodes: [queryNode], links: [] });

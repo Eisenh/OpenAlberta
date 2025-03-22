@@ -1,6 +1,9 @@
 # OpenDataABOnline - Svelte + Vite App
 
-This application provides a web interface for OpenDataABOnline, built with Svelte and Vite.
+This application provides a web interface for vector search of the open.alberta.ca CKAN repository. The package list as used to scan the site for metadata from each package, which was the stored in a Supabase DB. If the user wishes to convert this web pp to another CKAN ite, a new backed DB will be needed.  
+
+The app was built with Svelte / Vite nd Cytocape.js.
+
 
 ## Recommended IDE Setup
 
@@ -68,9 +71,10 @@ This application is configured to deploy to GitHub Pages. Follow these steps to 
    The app requires environment variables that contain sensitive API keys. These should be stored as GitHub repository secrets:
    
    - Go to your GitHub repository → Settings → Secrets and variables → Actions
-   - Add the following secrets:
-     - `VITE_QDRANT_URL` - Your Qdrant database URL
-     - `VITE_QDRANT_API_KEY` - Your Qdrant API key
+   - Add the following secrets: 
+     - `VITE_SUPABASE_URL` - Your Supabase database URL
+     - `VITE_SUPABASE_ANON_KEY` - Your Supabase API key
+     - `VITE_SUPABASE_SERVICE_ROLE_KEY` - Service key for DB maintanence
 
 4. **Push Your Code to GitHub**
    
