@@ -910,7 +910,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
               />
               <span class="threshold-value">{similarityThreshold}</span>
             </label>
-            
+            <!---
             <label class="control-group">
               <span class="control-label">Display Threshold:</span>
               <input
@@ -923,6 +923,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
               />
               <span class="threshold-value">{$displaySimilarityThreshold}</span>
             </label>
+            --->
           </div>
 
           <!-- Dataset details panel -->
