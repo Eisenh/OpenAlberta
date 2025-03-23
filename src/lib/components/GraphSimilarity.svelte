@@ -5,7 +5,7 @@
   import { get } from "svelte/store";
   import fcose from "cytoscape-fcose";
   import { displaySimilarityThreshold } from "../stores/graphSettings.js";
-  
+  import { calculateSimilarityMatrix } from "../utils/similarity.js";
 
   export let data;  // this is where the siilarityGraphData is passed.
   let threshold = get(displaySimilarityThreshold);
@@ -27,7 +27,7 @@
   let edgeMin, edgeMax, edgeMid = 0;
   let simMin, simMax = 0;
   let zoom = 1;
-  /*
+  
   // Watch for changes in graphData
   $: if (cy && data) {
     //const data = get(graphData);
@@ -35,33 +35,33 @@
     edgeMax = Math.max(...data.links.map(obj => obj.weight));
     edgeMin = Math.min(...data.links.map(obj => obj.weight));
     edgeMid = (edgeMax + edgeMin)/2;
-    displaySimilarityThreshold.set(edgeMid);
+    //displaySimilarityThreshold.set(edgeMid);
     simMax = Math.max(...data.nodes.slice(1).map(obj => obj.similarity));
     simMin = Math.min(...data.nodes.map(obj => obj.similarity));
     updateGraph(data);
   }
-*/
+
   // Function to update element styles based on threshold and zoom
   function updateElementStyles(graph) {
-    const scaleFactor = 1 / (graph.zoom());
+     // Ensure zoom is never zero to prevent division by zero
+    const zoom = Math.max(0.00001, graph.zoom() || 0.00001);
+    const scaleFactor = 1.1 / zoom;
     const fontsize = 12 * scaleFactor + "px";
     
     // Update nodes
     graph.nodes().forEach(node => {
-      let newSize = node.data('diameter') * scaleFactor;
+      let newSize = 30* node.data('similarity') * scaleFactor;
       node.style({
           'width': newSize,
           'height': newSize,
           'font-size': fontsize,
-          'text-wrap': 'wrap',
-          'text-max-width': '100px'
       });
     });
 
     // Update edges based on threshold
     graph.edges().forEach(link => {
-      let baseWeight = 10 * (link.data('weight') - edgeMin) + 3;
-      const weight = link.data('weight') || 0;
+      const weight = Math.max(link.data('weight') , 0);
+      let baseWeight = 2 * (weight - edgeMin) + 3;
       const display = weight < threshold ? 'none' : '';
       
       link.style({
@@ -100,13 +100,54 @@
       }
     });
     // Apply expanded style
+ // Apply expanded style
     cy.style([
+      {
+        selector: "node",
+        style: {
+          "background-color": "#6c757d",
+          "label": "",
+          //'width': baseSize,
+          //'height': baseSize,
+          "border-width": 0
+        }
+      },
+      {  // query node and identical nodes are styled differently
+        selector: "node[similarity >= 0.99]",
+        style: {
+          'background-color': '#F3A73C',
+          'label': '', //'data(label)',
+          // TODO figure out why mapData is invalid
+          //'width': 'mapData(data(similarity), 0.0, 1.1, 1, 50)', //baseSize,
+          //'height': 'mapData(data(similarity), 0.3, 1, 1, 50)',
+          //'font-size': '12px',
+          'text-wrap': 'wrap', // Enable text wrapping
+          //'text-max-width': '10em', // Set maximum width for text wrapping
+          'border-width': 0,
+          'text-background-color': 'lightgrey',
+          'z-index': 50,
+          'text-background-opacity': .8
+        }
+      },
       {
         selector: 'node.hover',
         style: {
           'background-color': 'green',
+          //'width': 60,
+          //'height': 60
         }
       },
+      {
+        selector: "edge",
+        style: {
+          //"width": 'data(weight)',  // Width based on weight
+          "line-color": "#E0E0E0", // border color
+          //"curve-style": "bezier",
+          //"target-arrow-shape": "triangle",
+          "target-arrow-color": "#E0E0E0", // border color
+          "opacity": .9,
+        }
+      }
     ]);
 
     // Handle hover event to show tooltip
@@ -178,7 +219,7 @@
       const node = event.target;
       if (onNodeClick) onNodeClick(node.data());
     });
-
+/*
     graphStatus = "Graph initialized, waiting for data";
     //updateGraph();
     edgeMax = Math.max(...data.links.map(obj => obj.weight));
@@ -188,6 +229,7 @@
     simMax = Math.max(...data.nodes.slice(1).map(obj => obj.similarity));
     simMin = Math.min(...data.nodes.map(obj => obj.similarity));
     updateGraph(data);
+    */
     console.log("Network graph component initialized with data:", data);
   }
 
@@ -273,14 +315,18 @@
           const csscolor = `rgb(0, ${Math.round(55 + node.data('normsim') * 200)}, 0)`;
           const label = node.data('label');
           node.style({
-            'background-color': isQuery ? '#F3A73C' : csscolor, //getNodeColorByProperty(similarity, simMin, simMax),
-            //'width': diameter,
+            'background-color': isQuery ? '#F3A73C' : csscolor, 
+            //color: 'rgba(255, 255, 255, 0.5)', // Half-transparent white for query node
+            //'width': diameter,rgba(255, 255, 255, 0.5)
             //'height': diameter,
             'label': similarity >= 0.99 || isQuery ? label : '',
             //'font-size': '12px',
-            //'text-wrap': 'wrap',
-            //'text-max-width': '100px',
-            'border-width': 0
+            'text-wrap': 'wrap', // Enable text wrapping
+            'text-max-width': '40em', // Set maximum width for text wrapping
+            'border-width': 0,
+            'text-background-color': 'white',
+            'z-index': 50,
+            'text-background-opacity': .7
           });
         });
         // Style edges based on weight
@@ -299,10 +345,12 @@
             'display' : display 
           });
         });
+
+       
         //console.log("cy graph ", cy);
         // Apply force-directed layout
         const layout = cy.layout({
-          name: 'cose',
+          name: 'fcose',
           idealEdgeLength: edge => {
             const scale = ((edge.data('weight') - edgeMin) / (edgeMax - edgeMin)); // Assuming similarity is stored in edge data
             const minLength = 30; // Minimum length for high similarity
@@ -310,23 +358,32 @@
             const length = Math.min(maxLength, minLength * scale);
             return length;
           },
-          numIter: 1000,
-          fit: true,
+          numIter: 2000,
           zoom: 1,
           padding: 50,
           quality: "default",
-          randomize: false,
-          nodeRepulsion: 100,
-          nodeOverlap: 10,
+          randomize: true,
+          nodeRepulsion: 10000,
+          nodeOverlap: 20,
           edgeElasticity: 0.45,
-          gravity: 1, //0.25,
-          //gravityRange: 1, //3.8,
-          //gravityCompound: 1.0,
-          //gravityRangeCompound: 1.5,
+          gravity: .25, //0.25,
+          // Gravity range (constant)
+          gravityRange: 3.8,
+          // Nesting factor (multiplier) to compact components
+          nestingFactor: 0.1,
+          // Align components to avoid overlapping
+          tile: true,
+          // Whether to fit the network view after layout
+          fit: true,
+          // Padding on fit
+          padding: 30,
           // Animation parameters
-          animate: 'end',
-          animationDuration: 100,
-          refresh: 10
+          animate: true,
+          //animate: 'end',
+          animationDuration: 1000,
+          // Number of iterations
+          numIter: 500
+          //refresh: 10
         });
             
         // Remove zoom listener temporarily
@@ -348,13 +405,13 @@
       console.log("Netork graph updated successfully");
       // Give the layout some time to complete
       setTimeout(() => {
-        //updateElementStyles(cy);
+        
         cy.center();
         cy.fit(undefined, 50);
         cy.resize();
       }, 500); // 500ms delay, adjust as needed
       
-      updateElementStyles(cy);
+     
           
     } catch (error) {
       console.error("Error updating network graph:", error);

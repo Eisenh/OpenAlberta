@@ -26,7 +26,7 @@
   let zoom = 1;
   
   let threshold = get(displaySimilarityThreshold);
-/*
+
   // Watch for changes in graphData
   $: if (cy && data) {
     //const data = get(graphData);
@@ -40,7 +40,7 @@
     updateGraph(data);
     
   }
-*/
+
   // Function to update element styles based on threshold and zoom
   function updateElementStyles(graph) {
     const scaleFactor = 2 / (graph.zoom());
@@ -113,8 +113,12 @@
             //'width': 'mapData(data(similarity), 0.0, 1.1, 1, 50)', //baseSize,
             //'height': 'mapData(data(similarity), 0.3, 1, 1, 50)',
             //'font-size': '12px',
-            'text-wrap': 'wrap',
-           // 'text-max-width': '100px'
+            'text-wrap': 'wrap', // Enable text wrapping
+            //'text-max-width': '10em', // Set maximum width for text wrapping
+            'border-width': 0,
+            'text-background-color': 'lightgrey',
+            'z-index': 50,
+            'text-background-opacity': .8
           }
       },
       {
@@ -220,7 +224,7 @@
       }
     });
     graphStatus = "Graph initialized, waiting for data";
-    
+    /*
     console.log("Expanded graph component initialized with data:", data);
     edgeMax = Math.max(...data.links.map(obj => obj.weight));
     edgeMin = Math.min(...data.links.map(obj => obj.weight));
@@ -229,6 +233,7 @@
     simMax = Math.max(...data.nodes.slice(1).map(obj => obj.similarity));
     simMin = Math.min(...data.nodes.map(obj => obj.similarity));
     updateGraph(data);
+    */
   }
 
   function updateGraph(data) {

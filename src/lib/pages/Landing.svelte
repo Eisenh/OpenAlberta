@@ -440,14 +440,14 @@
       expandedGraphData.set({ nodes: [queryNode], links: [] });
       return;
     }
-    let counter = 0;
+    //let counter = 0;
     let lnks =[];
     // Create graph links from query node to results
-    console.log(" resultNodes ", resultNodes, " length ",resultNodes.length);
+    //console.log(" resultNodes ", resultNodes, " length ",resultNodes.length);
     resultNodes.forEach((r) => {
       
-      counter = counter + 1;
-      console.log(" counter ", counter, " results", r);
+      //counter = counter + 1;
+      //console.log(" counter ", counter, " results", r);
       
       lnks.push( {
         source: "query",
@@ -455,7 +455,7 @@
         weight: r.similarity
       })
     });
-    console.log("Expanded lnks :", lnks, "length ",lnks.length);
+    //console.log("Expanded lnks :", lnks, "length ",lnks.length);
     // Use all filtered nodes
     expandedGraphData.set({
       nodes: [queryNode, ...filteredNodes],
@@ -597,7 +597,7 @@
 
   // Double-click handler to perform a new search
   const handleDoubleClick = async (node) => {
-    if (node.id === 'query') return;  // don't do anything if the clicked node is the query node.
+    //if (node.id === 'query') return;  // don't do anything if the clicked node is the query node.
 
     if (!node?.description) {
       console.error("Cannot search without node description");
@@ -628,11 +628,13 @@
         return;
       }
       results[0].id = 'query';
-      searchResults.set(results);  
+      searchResults.set(results);
+      // Update selectedDataset with the new query node
+      handleNodeClick(results[0]);
       // Update graph data based on current view mode
       
       updateFilteredGraphData();
-      // Calculate the similarity matrix for all nodes. This will update $similarityGraphData, 
+      // Calculate the similarity matrix for all nodes. This will update $similarityGraphData,
       // adding links to the graph display
       //calculateFullSimilarityMatrix(results);
       
