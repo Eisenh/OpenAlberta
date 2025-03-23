@@ -6,9 +6,7 @@
 
   let component;
 
-  $: {
-    component = routes[$currentRoute] || NotFound;
-  }
+  $: {  component = routes[$currentRoute] || NotFound; }
 </script>
 
 <MainLayout>

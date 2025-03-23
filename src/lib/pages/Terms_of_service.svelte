@@ -73,7 +73,7 @@
     {#if sectionsExpanded.license}
       <div class="section-content" id="license-content">
         <p>
-          This web application is copyright © {currentYear} Eisenhawer Tech and is licensed under the MIT License.
+          This web application is copyright © {currentYear} Eisenhawer Tech and is licensed under the MIT License. Source code is available at <a href = "https://github.com/Eisenh/OpenAlberta">https://github.com/Eisenh/OpenAlberta</a>
         </p>
         <p>
           Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 

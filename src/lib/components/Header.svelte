@@ -67,21 +67,13 @@
             {#if session}
               <li><a href="/profile" on:click|preventDefault={() => navigate('/profile')}>Profile</a></li>
             {/if}
+            <li><a href="/help" on:click|preventDefault={() => navigate('/help')}>Help</a></li>
             <li><a href="/terms" on:click|preventDefault={() => navigate('/terms')}>Terms</a></li>
           </ul>
         </nav>
         <div class="user-controls">
-        
-          {#if session}
-            <div class="user-profile">
-              <span class="user-email">{session.user.email.split('@')[0]}</span>
-              <button class="outline" on:click={signOut}>Sign Out</button>
-            </div>
-          {:else}
-            <a href="/login" class="button outline" on:click|preventDefault={() => navigate('/login')}>Login</a>
-            <a href="/signup" class="button" on:click|preventDefault={() => navigate('/signup')}>Sign Up</a>
-          {/if}
-          <button 
+          {#if false}
+         <button 
             id="settings-button"
             class="settings-button" 
             on:click|stopPropagation={toggleSettingsMenu}
@@ -92,7 +84,7 @@
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
             </svg>
           </button>
-          
+          {/if}
           {#if showSettingsMenu}
             <div id="settings-menu" class="settings-menu">
               <div class="settings-menu-content">
@@ -100,6 +92,16 @@
               </div>
             </div>
           {/if}
+          {#if session}
+            <div class="user-profile">
+              <span class="user-email">{session.user.email.split('@')[0]}</span>
+              <button class="outline" on:click={signOut}>Sign Out</button>
+            </div>
+          {:else}
+            <a href="/login" class="button outline" on:click|preventDefault={() => navigate('/login')}>Login</a>
+            <a href="/signup" class="button" on:click|preventDefault={() => navigate('/signup')}>Sign Up</a>
+          {/if}
+         
           
         </div>
     </div>

@@ -24,19 +24,19 @@
   
   //let session = null;
   // let graphData = writable({ nodes: [], links: [] });  // TODO delete
-let query = '';
-let queryVector = writable([]);
-let searchResults = writable([]);  // ll search results
-let selectedDataset = writable(null);
-let expandedResults = writable({});  // accordion listing of results
-let isModelLoading = writable(false);
-let modelLoadingProgress = writable(0);
-let modelLoadError = writable(null);
-let displayMode = writable("compact");  // compact, expanded, similarity graph
-let searchInput = '';
-let showHistoryDropdown = false;
-let lastAccordionClick = 0;
-const doubleClickDelay = 300; // milliseconds (same as in graph components)
+  let query = '';
+  let queryVector = writable([]);
+  let searchResults = writable([]);  // ll search results
+  let selectedDataset = writable(null);
+  let expandedResults = writable({});  // accordion listing of results
+  let isModelLoading = writable(false);
+  let modelLoadingProgress = writable(0);
+  let modelLoadError = writable(null);
+  let displayMode = writable("compact");  // compact, expanded, similarity graph
+  let searchInput = '';
+  let showHistoryDropdown = false;
+  let lastAccordionClick = 0;
+  const doubleClickDelay = 300; // milliseconds (same as in graph components)
   
   // Search and display thresholds
   let similarityThreshold = 0.3; // Search threshold
@@ -66,8 +66,14 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
   let modelLoadAttempted = false;
   // Flag to track if model loading is in progress
   let modelLoadInProgress = false;
-
-
+  let embedder = null;
+  let debugInfo = {
+    apiCall: null,
+    searchResult: null,
+    graphDataUpdate: null,
+    error: null
+  };
+/*
   // Add reactive statement to update graph when display threshold changes, but don't recalculate similarities
   $: if ($displaySimilarityThreshold !== undefined && $searchResults && $searchResults.length > 0) {
     console.log("Display similarity threshold changed to", $displaySimilarityThreshold, "updating graph data");
@@ -77,7 +83,7 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
       //updateSimilarityGraphData();
     }
   }
- 
+ */
 /*  not needed if data is all already calculated
   $: if ($displayMode !== undefined && $searchResults && $searchResults.length > 0) {
     console.log("Display mode changed to", $displayMode, "updating graph data");
@@ -98,11 +104,11 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
       return;
     }
     
-    console.log("Calculating similarity matrix for", resultNodes.length, "nodes");
     
     try {
       // Calculate matrix - limit to MAX_SIMILARITY_NODES for performance
       const limitedNodes = resultNodes.slice(0, MAX_SIMILARITY_NODES);
+      console.log("Calculating similarity matrix for", limitedNodes.length, "nodes");
       
       // Extract embeddings from nodes for calculation using standardized location
       const nodesWithEmbeddings = limitedNodes.map(node => {
@@ -116,7 +122,7 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
         };
       }).filter(node => Array.isArray(node.embedding) && node.embedding.length > 0);
       
-      console.log(`Found ${nodesWithEmbeddings.length} nodes with valid embeddings out of ${limitedNodes.length} nodes`);
+      //console.log(`Found ${nodesWithEmbeddings.length} nodes with valid embeddings out of ${limitedNodes.length} nodes`);
       
       // Calculate the similarity matrix
       const matrixData = calculateSimilarityMatrix(nodesWithEmbeddings, MAX_SIMILARITY_NODES);
@@ -124,7 +130,7 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
       // Store the matrix data
       similarityMatrixData.set(matrixData);
       
-      console.log("Similarity matrix calculated successfully:", matrixData);
+      //console.log("Similarity matrix calculated successfully:", matrixData);
     } catch (error) {
       console.error("Error calculating similarity matrix:", error);
       similarityMatrixData.set({ matrix: [], nodeIds: [] });
@@ -165,10 +171,11 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
             
       return;
     }
+      console.log("FilteredNodes ",filteredNodes);
       updateExpandedGraphData(filteredNodes);  //puts filtered data into expandedGraphData
       updateCompactGraphData(filteredNodes);
       calculateFullSimilarityMatrix(filteredNodes);
-      updateSimilarityGraphData(filteredNodes);  // this should display the nodes without all the node-node links.
+      updateSimilarityGraphData();  // this should display the nodes without all the node-node links.
   }
   
   function initializeSimilarityGraphData() {
@@ -208,12 +215,13 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
     console.log("Updated similarityGraphData with", nodes.length, "nodes and", links.length, "links");
   }
 
-  function updateSimilarityGraphData(filtered) {
+  function updateSimilarityGraphData() {
     // already includes nodes and queryNode-node edges, and should be filtered already
     
-    const simGraphData = get(expandedGraphData);  
-    const nodes = simGraphData.nodes;
-    const links = simGraphData.links;
+    const simGraphData = get(expandedGraphData);
+    const nodes = [...simGraphData.nodes];
+    // Create a NEW array instead of referencing the existing one
+    const links = [...simGraphData.links];
     // Get the current threshold
     const currentThreshold = get(displaySimilarityThreshold);
     // Add links between result nodes based on similarity matrix
@@ -247,7 +255,7 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
   }
 
 // Initialize embedder lazily to avoid top-level await issues
-  let embedder = null;
+
   async function getEmbedder() {
     if (!embedder) {
       try {
@@ -270,12 +278,6 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
     }));
   }
   
-  let debugInfo = {
-    apiCall: null,
-    searchResult: null,
-    graphDataUpdate: null,
-    error: null
-  };
  
   onMount(async () => {
     console.log("Landing Component mounted");
@@ -423,6 +425,7 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
    * @param {Array} filteredNodes - Array of nodes with query node at index 0
    */
   function updateExpandedGraphData(filteredNodes) {
+    console.log("updateExpandedGraphData called");
     if (!filteredNodes || filteredNodes.length === 0) {
       expandedGraphData.set({ nodes: [], links: [] });
       return;
@@ -433,30 +436,37 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
     
     // Get result nodes (everything after first element)
     const resultNodes = filteredNodes.slice(1);
-    
     if (resultNodes.length === 0) {
       expandedGraphData.set({ nodes: [queryNode], links: [] });
       return;
     }
-    
+    let counter = 0;
+    let lnks =[];
     // Create graph links from query node to results
-    const graphLinks = resultNodes.map(result => ({
-      source: queryNode.id,
-      target: result.id,
-      weight: result.similarity// ? Math.max(1, result.similarity ) : 0.5
-    }));
-    
+    console.log(" resultNodes ", resultNodes, " length ",resultNodes.length);
+    resultNodes.forEach((r) => {
+      
+      counter = counter + 1;
+      console.log(" counter ", counter, " results", r);
+      
+      lnks.push( {
+        source: "query",
+        target: r.id,
+        weight: r.similarity
+      })
+    });
+    console.log("Expanded lnks :", lnks, "length ",lnks.length);
     // Use all filtered nodes
     expandedGraphData.set({
-      nodes: filteredNodes,
-      links: graphLinks
+      nodes: [queryNode, ...filteredNodes],
+      links: lnks
     });
     console.log("ExpandedGraphData: ", get(expandedGraphData))
   }
 
 // First, let's modify the searchVectors function to return consistent data structure
 // searchVectors needs to return the whole data set and add a new node if the search was from text rather than a node click
-  async function searchVectors(queryText, rc = resultCount) {
+  async function searchVectors(queryText, rc = resultCount) {  //return { results, queryText }
     try {
       if ($modelInstance) {
         console.log("Using vector search with loaded model");
@@ -570,167 +580,163 @@ const doubleClickDelay = 300; // milliseconds (same as in graph components)
   }
 
 // Handle node click - update to use standardized data structure
-async function handleNodeClick(node) {
-  if (node.id === 'query') return;  // don't do anything if the clicked node is the query node.
+  async function handleNodeClick(node) {
+    if (node.id === 'query') return;  // don't do anything if the clicked node is the query node.
 
-  // Store the clicked node in a separate store for single-click details display
-  selectedDataset.set({
-    id: node.id,
-    label: node.label || 'Untitled',
-    description: node.description || 'No description available',
-    resources: node.resources || [],
-    tags: node.tags || [],
-    // Use standardized embedding location
-    embedding: node.embedding || []
-  });
-}
-
-// Double-click handler to perform a new search
-const handleDoubleClick = async (node) => {
-  if (node.id === 'query') return;  // don't do anything if the clicked node is the query node.
-
-  if (!node?.description) {
-    console.error("Cannot search without node description");
-    return;
-  }
-  
-  console.log("Double-click search with:", node.description);
-  
-  // Clear all graph data if no results
-  compactGraphData.set({ nodes: [], links: [] });
-  expandedGraphData.set({ nodes: [], links: [] });
-  similarityGraphData.set({ nodes: [], links: [] });
-  
-  try {
-    // Perform the search
-    const { results } = await searchVectors(node.description, resultCount);
-    
-    console.log(`Found ${results?.length || 0} results for node double-click`, results);
-    
-    results.sort((a, b) => b.similarity - a.similarity);
-    console.log("Sorted results:", results);
-    
-    // Reset threshold to match current search
-    minDisplayThreshold = similarityThreshold;
-    displaySimilarityThreshold.set(similarityThreshold);
-    
-    if (!results || results.length === 0) {
-      // Clear all graph data if no results
-      compactGraphData.set({ nodes: [queryNode], links: [] });
-      expandedGraphData.set({ nodes: [queryNode], links: [] });
-      similarityGraphData.set({ nodes: [queryNode], links: [] });
-      return;
-    }
-    results[0].id = 'query';
-    searchResults.set(results);  
-    // Update graph data based on current view mode
-    
-    updateFilteredGraphData();
-    // Calculate the similarity matrix for all nodes. This will update $similarityGraphData, 
-    // adding links to the graph display
-    calculateFullSimilarityMatrix(results);
-    
-    updateSimilarityGraphData()
-    
-    console.log("Double-click search completed and updateFilteredGraphData called", results, get(searchResults));
-  } catch (error) {
-    console.error("Error in handle double click:", error);
-  }
-}
-async function clearGraphData() {
-  // Clear all graph data if no results
-  compactGraphData.set({ nodes: [], links: [] });
-  expandedGraphData.set({ nodes: [], links: [] });
-  similarityGraphData.set({ nodes: [], links: [] });
-  
-}
-// Function to search using result's embedding vector
-async function resultSearch(result) {
-  if (!result?.embedding || result.embedding.length === 0) {
-    console.error("Cannot search without result embedding");
-    return;
-  }
-  
-  console.log("Result search with embedding vector");
-  clearGraphData();
-
-  try {
-    // Use the embedding directly for search
-    const { error: matchError, data: response } = await supabase.rpc(
-      'match_vectors',
-      {
-        query_embedding: result.embedding,
-        match_threshold: similarityThreshold,
-        match_count: resultCount, 
-      }
-    );
-
-    if (matchError) {
-      console.error('Error searching documents:', matchError);
-      return;
-    }
-
-    if (!response || response.length === 0) {
-      console.log("No vector search results found");
-      return;
-    }
-    
-    // Process results similar to searchVectors function
-    const results = response.map((item) => {
-      // Process embedding - ensure it's an array
-      let embedding = item.notes_embedding;
-      
-      // If it's a string, try to parse it as JSON
-      if (typeof embedding === 'string') {
-        try {
-          embedding = JSON.parse(embedding);
-        } catch (e) {
-          console.error("Failed to parse embedding string:", e, " Splitting by ,");
-          // If parsing fails, split by commas as a fallback
-          embedding = embedding.split(',').map(Number);
-        }
-      }
-      
-      return {
-        id: item.id,
-        label: item.metadata.title || "Untitled",
-        description: item.metadata.notes || item.content || "No description available",
-        resources: item.metadata.resources || [],
-        tags: item.metadata.tags || [],
-        embedding: embedding,
-        similarity: item.similarity
-      };
+    // Store the clicked node in a separate store for single-click details display
+    selectedDataset.set({
+      id: node.id,
+      label: node.label || 'Untitled',
+      description: node.description || 'No description available',
+      resources: node.resources || [],
+      tags: node.tags || [],
+      // Use standardized embedding location
+      embedding: node.embedding || []
     });
-    
-    console.log(`Processed ${results.length} search results with embeddings`);
-    
-    // Sort results by similarity
-    results.sort((a, b) => b.similarity - a.similarity);
-    
-    // Reset threshold to match current search
-    minDisplayThreshold = similarityThreshold;
-    displaySimilarityThreshold.set(similarityThreshold);
-    
-    if (!results || results.length === 0) {
+  }
+
+  // Double-click handler to perform a new search
+  const handleDoubleClick = async (node) => {
+    if (node.id === 'query') return;  // don't do anything if the clicked node is the query node.
+
+    if (!node?.description) {
+      console.error("Cannot search without node description");
       return;
     }
     
-    results[0].id = 'query';
-    searchResults.set(results);  
-    // Update graph data based on current view mode
+    console.log("Double-click search with:", node.description);
     
-    updateFilteredGraphData();
-    // Calculate the similarity matrix for all nodes. This will update $similarityGraphData, 
-    // adding links to the graph display
-    calculateFullSimilarityMatrix(results);
+    // Clear all graph data if no results
+    clearGraphData()
     
-    updateSimilarityGraphData()
-    
-    console.log("Result search completed and updateFilteredGraphData called", results, get(searchResults));
-  } catch (error) {
-    console.error("Error in result search:", error);
+    try {
+      // Perform the search
+      const { results } = await searchVectors(node.description, resultCount);
+      
+      console.log(`Found ${results?.length || 0} results for node double-click`, results);
+      
+      results.sort((a, b) => b.similarity - a.similarity);
+      console.log("Sorted results:", results);
+      
+      // Reset threshold to match current search
+      minDisplayThreshold = similarityThreshold;
+      displaySimilarityThreshold.set(similarityThreshold);
+      
+      if (!results || results.length === 0) {
+        // Clear all graph data if no results
+        clearGraphData()
+        return;
+      }
+      results[0].id = 'query';
+      searchResults.set(results);  
+      // Update graph data based on current view mode
+      
+      updateFilteredGraphData();
+      // Calculate the similarity matrix for all nodes. This will update $similarityGraphData, 
+      // adding links to the graph display
+      //calculateFullSimilarityMatrix(results);
+      
+      //updateSimilarityGraphData()
+      
+      console.log("Double-click search completed and updateFilteredGraphData called", results, get(searchResults));
+    } catch (error) {
+      console.error("Error in handle double click:", error);
+    }
   }
-}
+  async function clearGraphData() {
+    // Clear all graph data if no results
+    compactGraphData.set({ nodes: [], links: [] });
+    expandedGraphData.set({ nodes: [], links: [] });
+    similarityGraphData.set({ nodes: [], links: [] });
+    
+  }
+  // Function to search using result's embedding vector
+  async function resultSearch(result) {
+    if (!result?.embedding || result.embedding.length === 0) {
+      console.error("Cannot search without result embedding");
+      return;
+    }
+    
+    console.log("Result search with embedding vector");
+    clearGraphData();
+
+    try {
+      // Use the embedding directly for search
+      const { error: matchError, data: response } = await supabase.rpc(
+        'match_vectors',
+        {
+          query_embedding: result.embedding,
+          match_threshold: similarityThreshold,
+          match_count: resultCount, 
+        }
+      );
+
+      if (matchError) {
+        console.error('Error searching documents:', matchError);
+        return;
+      }
+
+      if (!response || response.length === 0) {
+        console.log("No vector search results found");
+        return;
+      }
+      
+      // Process results similar to searchVectors function
+      const results = response.map((item) => {
+        // Process embedding - ensure it's an array
+        let embedding = item.notes_embedding;
+        
+        // If it's a string, try to parse it as JSON
+        if (typeof embedding === 'string') {
+          try {
+            embedding = JSON.parse(embedding);
+          } catch (e) {
+            console.error("Failed to parse embedding string:", e, " Splitting by ,");
+            // If parsing fails, split by commas as a fallback
+            embedding = embedding.split(',').map(Number);
+          }
+        }
+        
+        return {
+          id: item.id,
+          label: item.metadata.title || "Untitled",
+          description: item.metadata.notes || item.content || "No description available",
+          resources: item.metadata.resources || [],
+          tags: item.metadata.tags || [],
+          embedding: embedding,
+          similarity: item.similarity
+        };
+      });
+      
+      console.log(`Processed ${results.length} search results with embeddings`);
+      
+      // Sort results by similarity
+      results.sort((a, b) => b.similarity - a.similarity);
+      
+      // Reset threshold to match current search
+      minDisplayThreshold = similarityThreshold;
+      displaySimilarityThreshold.set(similarityThreshold);
+      
+      if (!results || results.length === 0) {
+        return;
+      }
+      
+      results[0].id = 'query';
+      searchResults.set(results);  
+      // Update graph data based on current view mode
+      
+      updateFilteredGraphData();
+      // Calculate the similarity matrix for all nodes. This will update $similarityGraphData, 
+      // adding links to the graph display
+      //calculateFullSimilarityMatrix(results);
+      
+      //updateSimilarityGraphData()
+      
+      console.log("Result search completed and updateFilteredGraphData called", results, get(searchResults));
+    } catch (error) {
+      console.error("Error in result search:", error);
+    }
+  }
 
 // Handle text search
 async function handleTextSearch(searchText) {  // only for search from search bar
@@ -752,9 +758,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
     tags:  [],
   });
   // Clear all graph data if no results
-  compactGraphData.set({ nodes: [], links: [] });
-  expandedGraphData.set({ nodes: [], links: [] });
-  similarityGraphData.set({ nodes: [], links: [] });
+  clearGraphData();
 
   try {
     console.log("Calling searchVectors with:", searchInput);
@@ -770,9 +774,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
       searchResults.set([]);
       
       // Clear graph data
-      compactGraphData.set({ nodes: [], links: [] });
-      expandedGraphData.set({ nodes: [], links: [] });
-      similarityGraphData.set({ nodes: [], links: [] });      
+      clearGraphData(); 
       return;
     }
     
@@ -810,12 +812,12 @@ async function handleTextSearch(searchText) {  // only for search from search ba
     displaySimilarityThreshold.set(similarityThreshold);
     
     // Update graph data based on current view mode
-    updateFilteredGraphData(resultsWithQuery);  // updates copact and expanded graph data sets
+    updateFilteredGraphData(resultsWithQuery);  // updates compact and expanded graph data sets
     
     // Calculate the similarity matrix for all nodes. This will update $similarityGraphData, 
     // adding links to the graph display
-    calculateFullSimilarityMatrix(results);
-    updateSimilarityGraphData();
+    //calculateFullSimilarityMatrix(results);
+    //updateSimilarityGraphData();
 
   } catch (error) {
     console.error("Error in handleTextSearch:", error);
@@ -894,7 +896,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
               <select bind:value={$displayMode} class="mode-select">
                 <option value="compact">Compact</option>
                 <option value="expanded">Expanded</option>
-                <option value="similarity">Similarity Graph</option>
+                <option value="similarity">Similarity Network</option>
               </select>
             </label>
 
@@ -910,7 +912,6 @@ async function handleTextSearch(searchText) {  // only for search from search ba
               />
               <span class="threshold-value">{similarityThreshold}</span>
             </label>
-            <!---
             <label class="control-group">
               <span class="control-label">Display Threshold:</span>
               <input
@@ -923,7 +924,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
               />
               <span class="threshold-value">{$displaySimilarityThreshold}</span>
             </label>
-            --->
+          
           </div>
 
           <!-- Dataset details panel -->

@@ -33,8 +33,11 @@ export function calculateSimilarityMatrixGPU(results, maxNodes = 50) {
     const normalized = tf.div(tensors, tf.norm(tensors, 2, 1, true));
     const similarities = tf.matMul(normalized, normalized, false, true);
     
+    // Replace negative values with 0 to ensure similarity is between 0 and 1
+    const nonNegative = tf.maximum(similarities, 0);
+    
     // Convert back to regular array and ensure it's a 2D array
-    const matrix = similarities.arraySync();
+    const matrix = nonNegative.arraySync();
     
     // Ensure we have a 2D array (handle edge case of single embedding)
     if (!Array.isArray(matrix) || !Array.isArray(matrix[0])) {
@@ -43,13 +46,13 @@ export function calculateSimilarityMatrixGPU(results, maxNodes = 50) {
         [[1]]; // Fallback for extreme edge cases
       
       // Clean up tensors to prevent memory leaks
-      tf.dispose([tensors, normalized, similarities]);
+      tf.dispose([tensors, normalized, similarities, nonNegative]);
       
       return safeMatrix;
     }
     
     // Clean up tensors to prevent memory leaks
-    tf.dispose([tensors, normalized, similarities]);
+    tf.dispose([tensors, normalized, similarities, nonNegative]);
     
     return matrix;
   } catch (error) {
@@ -81,7 +84,8 @@ export function cosineSimilarity(a, b) {
   }
   
   if (normA === 0 || normB === 0) return 0;
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+  // Apply Math.max to ensure result is between 0 and 1, replacing negative values with 0
+  return Math.max(0, dotProduct / (Math.sqrt(normA) * Math.sqrt(normB)));
 }
 
 /**

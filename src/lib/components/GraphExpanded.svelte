@@ -4,6 +4,7 @@
   import cytoscape from "cytoscape";
   import { get } from "svelte/store";
   import fcose from "cytoscape-fcose";
+  import { displaySimilarityThreshold } from "../stores/graphSettings.js";
 
   export let data;
   export let onNodeClick;
@@ -20,10 +21,12 @@
   let graphStatus = "Initializing";
   let nodeCount = 0;
   let edgeCount = 0;
-  let edgeMin, edgeMax = 0;
+  let edgeMin, edgeMax, edgeMid = 0;
   let simMin, simMax = 0;
   let zoom = 1;
   
+  let threshold = get(displaySimilarityThreshold);
+/*
   // Watch for changes in graphData
   $: if (cy && data) {
     //const data = get(graphData);
@@ -35,34 +38,37 @@
 
     console.log(" sinMin ",simMin, "  max ", simMax, " edgeMin ",edgeMin, " edgeMax ", edgeMax )
     updateGraph(data);
-  }
-  
-  function scaleElementsOnZoom(graph) {
-    let zoom = graph.zoom();
-    console.log("Zoom event fired! Current zoom level:", zoom);
     
-    let scaleFactor = 1 / (zoom);
-    //scaleFactor = Math.max(minScaleFactor, Math.min(scaleFactor, maxScaleFactor)); // Keep in range
+  }
+*/
+  // Function to update element styles based on threshold and zoom
+  function updateElementStyles(graph) {
+    const scaleFactor = 2 / (graph.zoom());
     const fontsize = 12 * scaleFactor + "px";
+    
+    // Update nodes
     graph.nodes().forEach(node => {
-        let baseSize = node.data('diameter');
-        let newSize = baseSize * scaleFactor;
-        node.style({
-            'width': newSize,
-            'height': newSize,
-            'font-size': fontsize,
-            'text-wrap': 'wrap',
-            'text-max-width': '100px'
-        });
+      let newSize = node.data('diameter') * scaleFactor;
+      node.style({
+          'width': newSize,
+          'height': newSize,
+          'font-size': fontsize,
+          'text-wrap': 'wrap',
+          'text-max-width': '100px'
+      });
     });
-
+    
+    // Update edges based on threshold
     graph.edges().forEach(link => {
-      let baseWeight = 30 * (link.data('weight') - edgeMin) +1; // TODO add to links on initialiation
-      console.log("scalefactor ", scaleFactor, " weight ", link.data('weight'), " basewidth ", baseWeight);
-      link.style('width', baseWeight * scaleFactor);
-         
+      let baseWeight = 5* (link.data('weight') - edgeMin) + 1;
+      const weight = link.data('weight') || 0;
+      const display = weight < threshold ? 'none' : '';
+      
+      link.style({
+        'width': baseWeight * scaleFactor,
+        'display': display
+      });
     });
-            
   }
   // Initialize Cytoscape
   function initGraph() {
@@ -72,7 +78,7 @@
       return;
     }
     
-    console.log("Initializing Expanded Cytoscape graph");
+    console.log("Initializing Expanded Cytoscape graph ");
     
     cytoscape.use(fcose);
     cy = cytoscape({
@@ -132,7 +138,7 @@
       }
     ]);
 
-    cy.on('zoom', () => scaleElementsOnZoom(cy));    
+    cy.on('zoom', () => updateElementStyles(cy));    
    
     // Handle hover event to show tooltip
     cy.on("mouseover", "node", (event) => {
@@ -206,7 +212,23 @@
      //updateGraph(data);
     //}
     
+  // Subscribe to the displaySimilarityThreshold store
+    displaySimilarityThreshold.subscribe(value => {
+      threshold = value;
+      if (cy) {
+        updateElementStyles(cy);
+      }
+    });
     graphStatus = "Graph initialized, waiting for data";
+    
+    console.log("Expanded graph component initialized with data:", data);
+    edgeMax = Math.max(...data.links.map(obj => obj.weight));
+    edgeMin = Math.min(...data.links.map(obj => obj.weight));
+    edgeMid = (edgeMax + edgeMin)/2;
+    //displaySimilarityThreshold.set(edgeMid);
+    simMax = Math.max(...data.nodes.slice(1).map(obj => obj.similarity));
+    simMin = Math.min(...data.nodes.map(obj => obj.similarity));
+    updateGraph(data);
   }
 
   function updateGraph(data) {
@@ -251,7 +273,7 @@
         }
         node.distance = minDistance + minDistance / norm;// * (simMax - similarity)/(simMax - simMin) ;
         node.diameter = 200/ node.distance;
-        console.log("distance ",index, " " , node.distance, "  similarity ",similarity, " norm ", norm)
+        //console.log("distance ",index, " " , node.distance, "  similarity ",similarity, " norm ", norm)
         
         // Place nodes in a circle with radius based on similarity
         const angle = (2 * Math.PI * index) / (node.distance - 1);

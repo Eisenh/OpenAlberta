@@ -7,7 +7,8 @@
   import { displaySimilarityThreshold } from "../stores/graphSettings.js";
   
 
-  export let data;
+  export let data;  // this is where the siilarityGraphData is passed.
+  let threshold = get(displaySimilarityThreshold);
   export let onNodeClick;
   export let onNodeDblClick;
   
@@ -26,27 +27,27 @@
   let edgeMin, edgeMax, edgeMid = 0;
   let simMin, simMax = 0;
   let zoom = 1;
-  
+  /*
   // Watch for changes in graphData
   $: if (cy && data) {
     //const data = get(graphData);
     console.log("Network graph component reactive statement triggered with data:", data);
     edgeMax = Math.max(...data.links.map(obj => obj.weight));
     edgeMin = Math.min(...data.links.map(obj => obj.weight));
-    edgeMid = (edgeMax + edgeMin)/2
+    edgeMid = (edgeMax + edgeMin)/2;
+    displaySimilarityThreshold.set(edgeMid);
     simMax = Math.max(...data.nodes.slice(1).map(obj => obj.similarity));
     simMin = Math.min(...data.nodes.map(obj => obj.similarity));
     updateGraph(data);
   }
-  
-  function scaleElementsOnZoom(graph) {
-    zoom = graph.zoom();
-    //console.log("Zoom event fired! Current zoom level:", zoom);
-    let scaleFactor = 1 / (zoom);
-    //scaleFactor = Math.max(minScaleFactor, Math.min(scaleFactor, maxScaleFactor)); // Keep in range
+*/
+  // Function to update element styles based on threshold and zoom
+  function updateElementStyles(graph) {
+    const scaleFactor = 1 / (graph.zoom());
     const fontsize = 12 * scaleFactor + "px";
+    
+    // Update nodes
     graph.nodes().forEach(node => {
-      //const baseSize = node.data('diameter');
       let newSize = node.data('diameter') * scaleFactor;
       node.style({
           'width': newSize,
@@ -57,17 +58,19 @@
       });
     });
 
+    // Update edges based on threshold
     graph.edges().forEach(link => {
-      let baseWeight = 10 * (link.data('weight') - edgeMin) +1; // TODO add to links on initialiation
+      let baseWeight = 10 * (link.data('weight') - edgeMin) + 3;
+      const weight = link.data('weight') || 0;
+      const display = weight < threshold ? 'none' : '';
       
-      //const display = (threshold > link.data('weight')) ? 'none' : '';
-      //console.log("scalefactor ", scaleFactor, " weight ", link.data('weight'), " basewidth ", baseWeight);
-      link.style('width', baseWeight * scaleFactor);
-      //link.style('display', display);
-         
+      link.style({
+        'width': baseWeight * scaleFactor,
+        'display': display
+      });
     });
-           
   }
+ 
   // Initialize Cytoscape
   function initGraph() {
     if (!container) {
@@ -89,53 +92,21 @@
       //fit: true  // Adjust the viewport to fit all nodes
     });
     
+  // Subscribe to the displaySimilarityThreshold store
+    displaySimilarityThreshold.subscribe(value => {
+      threshold = value;
+      if (cy) {
+        updateElementStyles(cy);
+      }
+    });
     // Apply expanded style
     cy.style([
-      /*
-      {
-        selector: "node",
-        style: {
-          "background-color": "#6c757d",
-          "label": "",
-          'width': 10 , //mapData(similarity, 0.3, 1, 5, 50)",
-          'height': 10 ,
-          "border-width": 0
-        }
-      },
-      {
-        selector: "node[similarity >= 0.99]",
-        
-          style: {
-            'background-color': '#F3A73C',
-            'label': 'data(label)',
-           // 'width': 30,
-           // 'height': 30,
-           // 'font-size': '12px',
-            'text-wrap': 'wrap',
-           // 'text-max-width': '100px'
-          }
-      }, */
       {
         selector: 'node.hover',
         style: {
           'background-color': 'green',
-          //'width': 60,
-          //'height': 60
         }
       },
-      /*
-      {
-        selector: "edge",
-        style: {
-          //"width": baseSize/5,
-          "line-color": "#E0E0E0", // border color
-          //"curve-style": "bezier",
-          //"target-arrow-shape": "triangle",
-          "target-arrow-color": "#E0E0E0", // border color
-          "opacity": .9,
-        }
-      }
-        */
     ]);
 
     // Handle hover event to show tooltip
@@ -210,6 +181,14 @@
 
     graphStatus = "Graph initialized, waiting for data";
     //updateGraph();
+    edgeMax = Math.max(...data.links.map(obj => obj.weight));
+    edgeMin = Math.min(...data.links.map(obj => obj.weight));
+    edgeMid = (edgeMax + edgeMin)/2;
+    //displaySimilarityThreshold.set(edgeMid);
+    simMax = Math.max(...data.nodes.slice(1).map(obj => obj.similarity));
+    simMin = Math.min(...data.nodes.map(obj => obj.similarity));
+    updateGraph(data);
+    console.log("Network graph component initialized with data:", data);
   }
 
   function updateGraph(data) {
@@ -290,17 +269,17 @@
         cy.nodes().forEach((node, index) => {
           const similarity = node.data('similarity') || 0;
           const isQuery = (node.data('id') === 'query'); //node.data('id') === 'query';
-          const diameter = node.data('diameter');
+          //const diameter = node.data('diameter');
           const csscolor = `rgb(0, ${Math.round(55 + node.data('normsim') * 200)}, 0)`;
           const label = node.data('label');
           node.style({
             'background-color': isQuery ? '#F3A73C' : csscolor, //getNodeColorByProperty(similarity, simMin, simMax),
-            'width': diameter,
-            'height': diameter,
+            //'width': diameter,
+            //'height': diameter,
             'label': similarity >= 0.99 || isQuery ? label : '',
-            'font-size': '12px',
-            'text-wrap': 'wrap',
-            'text-max-width': '100px',
+            //'font-size': '12px',
+            //'text-wrap': 'wrap',
+            //'text-max-width': '100px',
             'border-width': 0
           });
         });
@@ -353,10 +332,9 @@
         // Remove zoom listener temporarily
         cy.off('zoom');
         
-        // After layout completes, reattach zoom listener
+        // After layout completes, reattach zoom listener and apply styles
         layout.one('layoutstop', () => {
-          cy.on('zoom', () => scaleElementsOnZoom(cy));
-          
+          cy.on('zoom', () => updateElementStyles(cy));
           
         });
 
@@ -370,12 +348,13 @@
       console.log("Netork graph updated successfully");
       // Give the layout some time to complete
       setTimeout(() => {
+        //updateElementStyles(cy);
         cy.center();
         cy.fit(undefined, 50);
         cy.resize();
-        scaleElementsOnZoom(cy);
       }, 500); // 500ms delay, adjust as needed
-
+      
+      updateElementStyles(cy);
           
     } catch (error) {
       console.error("Error updating network graph:", error);
