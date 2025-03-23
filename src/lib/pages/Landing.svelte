@@ -16,8 +16,10 @@
   //import {jLouvain } from '../utils/louvain';
   
   //console.log("Local Model Path:", import.meta.env.BASE_URL + "models/");
-  env.localModelPath = import.meta.env.DEV  ? "/public/model/" :"/model/"; //import.meta.env.BASE_URL + "models/"; //"../public/models/";
-  
+ // env.localModelPath = import.meta.env.DEV  ? "/public/model/" :"/model/"; //import.meta.env.BASE_URL + "models/"; //"../public/models/";
+  // Add caching configuration
+  env.cacheDir = "transformers-cache";
+  env.allowRemoteModels = true;
   //import UsageExample from './usage-example.svelte';
   // Define the required model path
   //const modelPath = "Xenova/all-MiniLM-L6-v2";
