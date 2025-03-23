@@ -7,13 +7,14 @@ on:
 
 jobs:
   build-and-deploy:
-    permissions:
-      contents: read
-      pull-requests: write
-      
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # ✅ Allows pushing to gh-pages
+      pages: write      # ✅ Required for GitHub Pages
+      id-token: write   # ✅ Needed for authentication
+
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
       - name: Setup Node.js
@@ -22,20 +23,21 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build Project
         run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
           VITE_PGVECTOR_DIMS: ${{ secrets.VITE_PGVECTOR_DIMS }}
-          # Add VITE_SUPABASE_DB_URL if needed with proper password
+          # If you need VITE_SUPABASE_DB_URL, add it here
 
       - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: dist
-          branch: gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with: 
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist  # ✅ Ensure this matches your actual build output directory
+
