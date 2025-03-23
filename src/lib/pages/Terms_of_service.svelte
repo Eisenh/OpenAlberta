@@ -31,7 +31,7 @@
 
 <div class="terms-container">
   <header>
-    <h1>Terms of Service</h1>
+    <h1>Privacy Policy & Terms of Service</h1>
     <p class="last-updated">Last Updated: March 21, 2025</p>
   </header>
   
@@ -203,10 +203,17 @@
     {#if sectionsExpanded.privacyPolicy}
       <div class="section-content" id="privacyPolicy-content">
         <p>
-          Your use of the application is also governed by our Privacy Policy, which outlines how we collect, 
+          Your use of the application is also governed by this Privacy Policy, which outlines how we collect, 
           use, and protect your personal information. By using this application, you consent to the data 
-          practices described in the Privacy Policy.
+          practices described in the following:
         </p>
+        
+        <ul>
+          <li>We optionally collect an email address from users that sign up to persist search history between sessions.</li>
+          <li>We do not sell or willingly expose your email address to anyone.</li>
+          <li>We may use search histories to improve the app. </li>
+          <li>You may delete your search history at any time from the profie page (which is accessible if signed in)</li>
+        </ul>
       </div>
     {/if}
   </section>

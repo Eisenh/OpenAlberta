@@ -53,7 +53,7 @@
           technology to help you discover and explore open datasets provided by the Government of Alberta.
         </p>
         <p>
-          Unlike traditional keyword search systems, our platform uses AI-powered vector embeddings 
+          Unlike traditional keyword search systems, the platform uses AI-powered vector embeddings 
           to understand the meaning behind your queries, returning results based on semantic relevance 
           rather than just keyword matching.
         </p>
@@ -78,7 +78,7 @@
         <h3>Basic Search</h3>
         <p>
           To search for datasets, enter your query in the search box at the top of the page and press Enter 
-          or click the search icon. Results will be displayed in both graph and list formats.
+          or click the search icon. Results will be displayed in both graph and list formats (below the graph).
         </p>
         
         <h3>Understanding Results</h3>
@@ -128,17 +128,17 @@
     {#if sectionsExpanded.vectorSearch}
       <div class="section-content" id="vectorSearch-content">
         <p>
-          Our application uses a technique called vector search to find semantically relevant documents.
+          The application uses a technique called vector search to find semantically relevant documents.
           Here's how it works:
         </p>
         
         <h3>Vector Embeddings</h3>
         <p>
-          When you enter a search query, our system:
+          When you enter a search query, the app:
         </p>
         <ol>
           <li>Converts your text query into a high-dimensional vector (embedding) using a neural language model</li>
-          <li>Compares this vector to the pre-computed embeddings of all datasets in our database</li>
+          <li>Compares this vector to the pre-computed embeddings of all datasets in the database</li>
           <li>Returns datasets with embeddings most similar to your query vector</li>
         </ol>
         
@@ -224,7 +224,7 @@
     {#if sectionsExpanded.technicalDetails}
       <div class="section-content" id="technicalDetails-content">
         <p>
-          For those interested in the technical aspects, our application is built with:
+          For those interested in the technical aspects, the application is built with:
         </p>
         
         <h3>Front-end Technologies</h3>
