@@ -40,8 +40,8 @@
   const doubleClickDelay = 300; // milliseconds (same as in graph components)
   
   // Search and display thresholds
-  let similarityThreshold = 0.4; // Search threshold
-  let minDisplayThreshold = 0.4; // Minimum display threshold (same as search threshold initially)
+  let similarityThreshold = 0.3; // Search threshold
+  let minDisplayThreshold = 0.3; // Minimum display threshold (same as search threshold initially)
   let resultCount = 50; // Maximum number of results to fetch
   
   // Maximum number of nodes to calculate similarities for
@@ -109,7 +109,7 @@
     try {
       // Calculate matrix - limit to MAX_SIMILARITY_NODES for performance
       const limitedNodes = resultNodes.slice(0, MAX_SIMILARITY_NODES);
-      console.log("Calculating similarity matrix for", limitedNodes.length, "nodes");
+//      console.log("Calculating similarity matrix for", limitedNodes.length, "nodes");
       
       // Extract embeddings from nodes for calculation using standardized location
       const nodesWithEmbeddings = limitedNodes.map(node => {
@@ -172,7 +172,7 @@
             
       return;
     }
-      console.log("FilteredNodes ",filteredNodes);
+//      console.log("FilteredNodes ",filteredNodes);
       updateExpandedGraphData(filteredNodes);  //puts filtered data into expandedGraphData
       updateCompactGraphData(filteredNodes);
       calculateFullSimilarityMatrix(filteredNodes);
@@ -193,7 +193,7 @@
     if (matrix.length > 0 && nodeIds.length > 0) {
       // Use the similarity matrix to create links between result nodes
       for (let i = 0; i < nodeIds.length; i++) {
-        console.log("Si row ",i)
+//        console.log("Si row ",i)
         for (let j = i + 1; j < nodeIds.length; j++) {
           const similarity = matrix[i][j];
           if (similarity >= currentThreshold) {
@@ -213,7 +213,7 @@
       links: links
     });
         
-    console.log("Updated similarityGraphData with", nodes.length, "nodes and", links.length, "links");
+//    console.log("Updated similarityGraphData with", nodes.length, "nodes and", links.length, "links");
   }
 
   function updateSimilarityGraphData() {
@@ -252,7 +252,7 @@
       links: links
     });
         
-    console.log("Updated similarityGraphData with", simGraphData.nodes.length, "nodes and", links.length, "links");
+//    console.log("Updated similarityGraphData with", simGraphData.nodes.length, "nodes and", links.length, "links");
   }
 
 // Initialize embedder lazily to avoid top-level await issues
@@ -281,7 +281,7 @@
   
  
   onMount(async () => {
-    console.log("Landing Component mounted");
+//    console.log("Landing Component mounted");
     debugInfo = {
       apiCall: "Component initialized",
       searchResult: "Not started",
@@ -346,7 +346,7 @@
         modelLoadInProgress = true;
         
         try {
-          console.log("Loading model for embedding generation");
+//          console.log("Loading model for embedding generation");
           const embedder = await getEmbedder();// tryLoadModel();
           modelLoadInProgress = false;
           
@@ -355,7 +355,7 @@
             const output = await embedder(text, { pooling: "mean", normalize: true });
             // Extract the embedding output
             const embedding = Array.from(output.data)
-            console.log("Embedding generated successfully line 135", embedding);
+//            console.log("Embedding generated successfully", embedding);
             return embedding; //Array.from(result.data);  //embeddding vector
           } else {
             throw new Error("Failed to load model");
@@ -413,7 +413,7 @@
       target: result.id,
       weight: result.similarity ? Math.max(1, result.similarity * 10) : 5
     }));
-    console.log("Graphlinks in update compact: ", graphLinks)
+//    console.log("Graphlinks in update compact: ", graphLinks)
     // Final nodes are query node plus limited results
     compactGraphData.set({
       nodes: [queryNode, ...limitedResults],
@@ -426,7 +426,7 @@
    * @param {Array} filteredNodes - Array of nodes with query node at index 0
    */
   function updateExpandedGraphData(filteredNodes) {
-    console.log("updateExpandedGraphData called");
+//   console.log("updateExpandedGraphData called");
     if (!filteredNodes || filteredNodes.length === 0) {
       expandedGraphData.set({ nodes: [], links: [] });
       return;
@@ -444,7 +444,7 @@
     //let counter = 0;
     let lnks =[];
     // Create graph links from query node to results
-    console.log(" resultNodes ", resultNodes, " length ",resultNodes.length);
+//    console.log(" resultNodes ", resultNodes, " length ",resultNodes.length);
     resultNodes.forEach((r) => {
       
       //counter = counter + 1;
@@ -462,7 +462,7 @@
       nodes: [queryNode, ...resultNodes],
       links: lnks
     });
-    console.log("ExpandedGraphData: ", get(expandedGraphData))
+//    console.log("ExpandedGraphData: ", get(expandedGraphData))
   }
 
 // searchVectors needs to return the whole data set and add a new first node if the search was from text rather than a node click
@@ -474,10 +474,10 @@
         try {
           queryVector = await generateEmbedding(queryText);
           
-          console.log("In searchVectors, Query vector type:", typeof queryVector);
-          console.log("Query vector is array?", Array.isArray(queryVector));
+//          console.log("In searchVectors, Query vector type:", typeof queryVector);
+//          console.log("Query vector is array?", Array.isArray(queryVector));
           if (Array.isArray(queryVector) && queryVector.length > 0) {
-            console.log("First few values of query vector:", queryVector.slice(0, 5));
+//            console.log("First few values of query vector:", queryVector.slice(0, 5));
           }
           
           const { error: matchError, data: response } = await supabase.rpc(
@@ -501,11 +501,9 @@
 
           // Check the type of first embedding to diagnose the issue
           if (response.length > 0) {
-            console.log("First embedding type:", typeof response[0].notes_embedding);
-            console.log("Is array?", Array.isArray(response[0].notes_embedding));
-            console.log("First few values:", Array.isArray(response[0].notes_embedding) ? 
-              response[0].notes_embedding.slice(0, 5) : 
-              "Not an array");
+//            console.log("First embedding type:", typeof response[0].notes_embedding);
+//            console.log("Is array?", Array.isArray(response[0].notes_embedding));
+//            console.log("First few values:", Array.isArray(response[0].notes_embedding) ? response[0].notes_embedding.slice(0, 5) : "Not an array");
               
             // If it's a string, try to parse it
             if (typeof response[0].notes_embedding === 'string') {
@@ -539,9 +537,9 @@
             };
           });
           
-          console.log(`Processed ${results.length} search results with embeddings`);
-          console.log("First result embedding type:", typeof results[0]?.embedding);
-          console.log("First embedding is array?", Array.isArray(results[0]?.embedding));
+//          console.log(`Processed ${results.length} search results with embeddings`);
+//          console.log("First result embedding type:", typeof results[0]?.embedding);
+ //         console.log("First embedding is array?", Array.isArray(results[0]?.embedding));
           
           return { results };
 
@@ -613,10 +611,10 @@
       // Perform the search
       const { results } = await searchVectors(node.description, resultCount);
       
-      console.log(`Found ${results?.length || 0} results for node double-click`, results);
+//      console.log(`Found ${results?.length || 0} results for node double-click`, results);
       
       results.sort((a, b) => b.similarity - a.similarity);
-      console.log("Sorted results:", results);
+//      console.log("Sorted results:", results);
       
       // Reset threshold to match current search
       minDisplayThreshold = similarityThreshold;
@@ -640,7 +638,7 @@
       
       //updateSimilarityGraphData()
       
-      console.log("Double-click search completed and updateFilteredGraphData called", results, get(searchResults));
+//      console.log("Double-click search completed and updateFilteredGraphData called", results, get(searchResults));
     } catch (error) {
       console.error("Error in handle double click:", error);
     }
@@ -659,7 +657,7 @@
       return;
     }
     
-    console.log("Result search with embedding vector");
+ //   console.log("Result search with embedding vector");
     //clearGraphData();
 
     try {
@@ -710,7 +708,7 @@
         };
       });
       
-      console.log(`Processed ${results.length} search results with embeddings`);
+//      console.log(`Processed ${results.length} search results with embeddings`);
       
       // Sort results by similarity
       results.sort((a, b) => b.similarity - a.similarity);
@@ -734,7 +732,7 @@
       
       //updateSimilarityGraphData()
       
-      console.log("Result search completed and updateFilteredGraphData called", results, get(searchResults));
+//      console.log("Result search completed and updateFilteredGraphData called", results, get(searchResults));
     } catch (error) {
       console.error("Error in result search:", error);
     }
@@ -743,7 +741,7 @@
 // Handle text search
 async function handleTextSearch(searchText) {  // only for search from search bar
   // tries to search vectors, or fallback to text search
-  console.log("handleTextSearch called");
+//  console.log("handleTextSearch called");
   if (!searchInput?.trim()) {
     console.log("Empty search input, returning");
     if (searchText) {
@@ -762,11 +760,11 @@ async function handleTextSearch(searchText) {  // only for search from search ba
   // Clear all graph data if no results
 
   try {
-    console.log("Calling searchVectors with:", searchInput);
+  //  console.log("Calling searchVectors with:", searchInput);
   
     const { results } = await searchVectors(searchInput, resultCount);  //reults must be the array of nodes
 
-    console.log("Search raw results:", results);
+  //  console.log("Search raw results:", results);
     // results.sort((a, b) => b.similarity - a.similarity);
     // console.log("Sorted results:", results);
 
@@ -806,7 +804,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
     
     // Store the results with query node at index 0
     const resultsWithQuery = [queryNode, ...results];
-    console.log("resultsWithQuery ", resultsWithQuery);
+//    console.log("resultsWithQuery ", resultsWithQuery);
     searchResults.set(resultsWithQuery);
     
     // Update min display threshold to match search threshold
@@ -1311,10 +1309,13 @@ async function handleTextSearch(searchText) {  // only for search from search ba
   }
   
   .resources-list li a {
-    color: var(--color-primary);
-    text-decoration: none;
+    /*color: var(--color-primary);*/
+    text-decoration: none; /* Add underline */
     display: flex;
     align-items: center;
+    padding-left: 20px; /* Adjust the indentation as needed */
+    font-size: var(--font-size-lg);
+    color: rgb(120, 0, 0) /* Add highlighting */
   }
   
   .resources-list li a:hover {

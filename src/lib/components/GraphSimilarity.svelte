@@ -62,7 +62,7 @@
     // Update edges based on threshold
     graph.edges().forEach(link => {
       const weight = Math.max(link.data('weight') , 0);
-      let baseWeight = 2 * (weight - edgeMin) + 3;
+      let baseWeight = 3 * (weight - edgeMin) + 1;
       const display = weight < threshold ? 'none' : '';
       
       link.style({
@@ -133,7 +133,7 @@
     }
     console.log("Initializing Similarity Cytoscape graph");
     
-    cytoscape.use(fcose);
+    cytoscape.use(cola);
     cy = cytoscape({
       container: container,
       userPanningEnabled: true,
@@ -463,17 +463,49 @@
           const opacity =  Math.min(1, 0.1 + weight * 0.9);
           const display = (weight > threshold) ? '': 'none';
           const csscolor =  `rgba(100, 100, 100, ${opacity})`;
-          
+                  
+          const sourceNode = cy.getElementById(edge.data('source'));
+          const targetNode = cy.getElementById(edge.data('target'));
+          const sourceCluster = sourceNode.data('cluster');
+          const targetCluster = targetNode.data('cluster');
+          const sourceColor = getClusterColor(sourceCluster, clusterColors);
+          const targetColor = getClusterColor(targetCluster, clusterColors);
+          if (isQueryLink) {
+            edge.style({
+              'line-color': '#F3A73C' ,
+              'target-arrow-color': '#F3A73C',
+              'line-gradient-stop-colors': null // Remove any gradient
+            });
+            console.log("L471 edge formating ",sourceCluster, targetCluster, sourceColor );
+          } else if (sourceCluster === targetCluster ) {
+            // Intra-cluster edge - use the cluster color            
+            console.log("L471 edge formating ",sourceCluster, targetCluster, sourceColor );
+            edge.style({
+              'line-color': sourceColor,
+              'target-arrow-color': sourceColor,
+              'line-gradient-stop-colors': null // Remove any gradient
+            });
+          } else {
+            // Inter-cluster edge - use gradient
+            
+            console.log("L471 edge formating ",sourceCluster, targetCluster, sourceColor );
+            edge.style({
+              'line-gradient-stop-colors': [sourceColor, targetColor],
+              'line-gradient-stop-positions': [0, 100],
+              'curve-style': 'bezier', // Required for gradients
+              'target-arrow-color': targetColor
+            });
+          }
           edge.style({
-            'width': 1 + weight * 9,
-            'line-color': isQueryLink ? '#F3A73C' : csscolor,
+            //'width': 1 + weight * 5,
+            //'line-color': isQueryLink ? '#F3A73C' : csscolor,
             'opacity': opacity,
-            'target-arrow-color': isQueryLink ? '#F3A73C' : csscolor,
+            //'target-arrow-color': isQueryLink ? '#F3A73C' : csscolor,
             'display' : display 
           });
         });
 
-        
+        /*
         for (const cluster in clusterNodes) {
           constraints.push({
             type: 'boundingBox',
@@ -486,12 +518,12 @@
             nodes: clusterNodes[cluster]
           });
         }
-/*
+
         */
         // Apply force-directed layout
         updateElementStyles(cy);
         const layout = cy.layout({
-          name: 'fcose',
+          name: 'cose',
           //constraints: constraints,
           idealEdgeLength: edge => {
             const scale = ((edge.data('weight') - edgeMin) / (edgeMax - edgeMin)); // Assuming similarity is stored in edge data
@@ -501,7 +533,7 @@
             return length;
           },
           numIter: 2000,
-          zoom: 1,
+          //zoom: 1,
           padding: 50,
           quality: "default",
           randomize: true,
@@ -516,7 +548,7 @@
           // Align components to avoid overlapping
           tile: true,
           // Whether to fit the network view after layout
-          //fit: true, // Adjust the viewport to fit all nodes
+          fit: true, // Adjust the viewport to fit all nodes
           // Padding on fit
           padding: 30,
           // Animation parameters
@@ -534,13 +566,15 @@
         // After layout completes, reattach zoom listener and apply styles
         layout.on('layoutstop', () => {
           
+        cy.center();
+        cy.fit(undefined, 50);
           //updateElementStyles(cy);
         });
         
         
         layout.run();
-        cy.center();
-        cy.fit(undefined, 50);
+        //cy.center();
+        //cy.fit(undefined, 50);
       });
       nodeCount = data.nodes.length;
       edgeCount = data.links.length;
@@ -548,7 +582,9 @@
       
       console.log("Netork graph updated successfully");
       // Give the layout some time to complete
-      setTimeout(() => { cy.resize();  }, 500); // 500ms delay, adjust as needed
+      setTimeout(() => { 
+        cy.resize();  
+      }, 900); // 500ms delay, adjust as needed
       
      
           
