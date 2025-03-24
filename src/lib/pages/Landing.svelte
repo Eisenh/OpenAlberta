@@ -40,8 +40,8 @@
   const doubleClickDelay = 300; // milliseconds (same as in graph components)
   
   // Search and display thresholds
-  let similarityThreshold = 0.55; // Search threshold
-  let minDisplayThreshold = 0.55; // Minimum display threshold (same as search threshold initially)
+  let similarityThreshold = 0.4; // Search threshold
+  let minDisplayThreshold = 0.4; // Minimum display threshold (same as search threshold initially)
   let resultCount = 50; // Maximum number of results to fetch
   
   // Maximum number of nodes to calculate similarities for
