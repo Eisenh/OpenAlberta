@@ -437,6 +437,8 @@ const jLouvain = function (nds, edgs, __MIN) { // A function expression can be s
 
 };
 
-module.exports = {
-    jLouvain: jLouvain
-};
+export { jLouvain };
+
+//module.exports = {
+//    jLouvain: jLouvain
+//};

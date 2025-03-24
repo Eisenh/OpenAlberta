@@ -57,8 +57,8 @@ function createSearchHistoryStore() {
     },
     
     // Add search to history
-    addSearch: async (query, timestamp) => {
-      const newItem = { query, timestamp };
+    addSearch: async (query, created_at) => {
+      const newItem = { query, created_at };
       //console.log("searchHistory addSearch ", newItem);
       
       // Update local store
@@ -82,7 +82,7 @@ function createSearchHistoryStore() {
       });
       
       // Save to local storage for all users
-      saveToLocalStorage(updatedHistory);
+      saveToLocalStorage(updatedHistory.map(item => ({ query: item.query, created_at: item.created_at })));
       
       // Additionally save to Supabase if user is logged in
       const { data: { session } } = await supabase.auth.getSession();
@@ -99,7 +99,7 @@ function createSearchHistoryStore() {
           // Update the timestamp of the existing entry
           const { error } = await supabase
             .from('search_history')
-            .update({ created_at: timestamp })
+            .update({ created_at: created_at })
             .eq('id', data[0].id);
             
           if (error) {
@@ -112,7 +112,7 @@ function createSearchHistoryStore() {
             .insert({
               user_id: session.user.id,
               query,
-              created_at: timestamp
+              created_at: created_at
             });
             
           if (error) {
@@ -168,14 +168,16 @@ function createSearchHistoryStore() {
           
         if (data && data.length > 0) {
           // Update the timestamp if the local one is newer
-          const existingDate = new Date(data[0].created_at);
-          const localDate = new Date(item.timestamp);
-          
-          if (localDate > existingDate) {
-            await supabase
-              .from('search_history')
-              .update({ created_at: item.timestamp })
-              .eq('id', data[0].id);
+          if (data[0]) {
+            const existingDate = new Date(data[0].created_at);
+            const localDate = new Date(item.created_at);
+            
+            if (localDate > existingDate) {
+              await supabase
+                .from('search_history')
+                .update({ created_at: item.created_at })
+                .eq('id', data[0].id);
+            }
           }
         } else {
           // Insert new entry
@@ -184,13 +186,12 @@ function createSearchHistoryStore() {
             .insert({
               user_id: session.user.id,
               query: item.query,
-              created_at: item.timestamp
+              created_at: item.created_at
             });
         }
       }
     }
   };
 }
-
 
 export const searchHistory = createSearchHistoryStore();

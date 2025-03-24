@@ -4,10 +4,9 @@
   import cytoscape from "cytoscape";
   import { get } from "svelte/store";
   import fcose from "cytoscape-fcose";
-  import cola from "cytoscape-cola";
   import { displaySimilarityThreshold } from "../stores/graphSettings.js";
   import { calculateSimilarityMatrix } from "../utils/similarity.js";
-  import {jLouvain } from '../utils/louvain';
+
   export let data;  // this is where the siilarityGraphData is passed.
   let threshold = get(displaySimilarityThreshold);
   export let onNodeClick;
@@ -20,6 +19,7 @@
   //let baseSize = 5;  // Base node size
   let minScaleFactor = 0.1;
   let maxScaleFactor = 1.2;
+
   // Debugging variables
   let graphStatus = "Initializing";
   let nodeCount = 0;
@@ -38,7 +38,6 @@
     //displaySimilarityThreshold.set(edgeMid);
     simMax = Math.max(...data.nodes.slice(1).map(obj => obj.similarity));
     simMin = Math.min(...data.nodes.map(obj => obj.similarity));
-    initGraph()
     updateGraph(data);
   }
 
@@ -71,53 +70,7 @@
       });
     });
   }
-  
-  function getClusterColor(clusterId, colorMap = {}) {
-    const baseColors = [
-      '#1f77b4', // blue
-      '#d62728', // red
-      '#9467bd', // purple
-      '#8c564b', // brown
-      '#2ca02c', // green
-      '#e377c2', // pink
-      '#7f7f7f', // gray
-      '#bcbd22', // olive
-      '#17becf'  // cyan
-    ];
-
-    if (colorMap[clusterId]) {
-      return colorMap[clusterId];
-    }
-
-    const baseColorIndex = clusterId % baseColors.length;
-    let color = baseColors[baseColorIndex];
-
-    // If there are more clusters than base colors, generate a shade
-    if (clusterId >= baseColors.length) {
-      color = adjustColorBrightness(color, (clusterId / baseColors.length) * 0.8); // Adjust brightness
-    }
-
-    colorMap[clusterId] = color;
-    return color;
-  }
-
-
-  function adjustColorBrightness(hex, factor) {
-    let color = hex.replace(/^#/, '');
-    let r = parseInt(color.substring(0, 2), 16);
-    let g = parseInt(color.substring(2, 4), 16);
-    let b = parseInt(color.substring(4, 6), 16);
-
-    r = Math.round(r * factor);
-    g = Math.round(g * factor);
-    b = Math.round(b * factor);
-
-    r = Math.min(255, Math.max(0, r));
-    g = Math.min(255, Math.max(0, g));
-    b = Math.min(255, Math.max(0, b));
-
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-  }
+ 
   // Initialize Cytoscape
   function initGraph() {
     if (!container) {
@@ -126,11 +79,6 @@
       return;
     }
     
-    if (!data) {
-      console.error("Data  not found");
-      graphStatus = "Error: Data not passed ";
-      return;
-    }
     console.log("Initializing Similarity Cytoscape graph");
     
     cytoscape.use(fcose);
@@ -139,7 +87,7 @@
       userPanningEnabled: true,
       userZoomingEnabled: true,
      // wheelSensitivity: 0.3
-      //zoom: 1,  // Set initial zoom
+      zoom: 1,  // Set initial zoom
       pan: { x: 0, y: 0 },  // Center the graph
       //fit: true  // Adjust the viewport to fit all nodes
     });
@@ -151,7 +99,8 @@
       updateElementStyles(cy);
     });
     
-  // Subscribe to the displaySimilarityThreshold store
+
+    // Subscribe to the displaySimilarityThreshold store
     displaySimilarityThreshold.subscribe(value => {
       threshold = value;
       if (cy) {
@@ -208,7 +157,9 @@
         }
       }
     ]);
-    //updateElementStyles(cy);
+    updateElementStyles(cy);
+
+    
     // Handle hover event to show tooltip
     cy.on("mouseover", "node", (event) => {
       const node = event.target;
@@ -308,11 +259,6 @@
         const minDistance = 5;  // Minimum distance from center
         const maxDistance = 100; // Maximum distance from center
         const threshold = get(displaySimilarityThreshold);
-              
-        let constraints = [];
-        let clusterNodes = {};
-        //let clusterColors = ["blue", "red", "yellow", "magenta"];
-        let clusterColors = {}; // Create color map object
         // Add new elements
         // Add nodes with initial positions based on similarity
         const nodes = data.nodes.map((node, index) => {
@@ -325,7 +271,6 @@
             normSim = 1; 
           } else normSim = Math.max((similarity - simMin) / (simMax - simMin), 0.1); //
             //0-1
-          node.ind = index;
           node.normsim = normSim;
           node.distance = minDistance + minDistance / normSim;// * (simMax - similarity)/(simMax - simMin) ;
           node.diameter = Math.max(10 + 20 * normSim, 20);
@@ -353,7 +298,7 @@
             }
           };
         });
-               
+        
         // Add edges with weights based on similarity
         const edges = data.links.map((link) => {
           let normWt = 0;
@@ -369,77 +314,15 @@
           data: { ...link }
           }
         });
-        console.log(" Data ", " nodes ", nodes.length, " edges", edges.length)
 
-        let nodeIdsForLouvain = [];
-        nodeIdsForLouvain = nodes.map((node) => {
-          return node.data.id;  //returs nodeIds
-        });
-        console.log("Nodes for jLouvain ", nodeIdsForLouvain);
-
-        let edgesForLouvain = [];
-        // Now create the edges with error checking
-       
-        edgesForLouvain = edges.map(link => {
-           //console.log("Link ",link);
-          return {
-            source: link.data.source,
-            target: link.data.target,
-            weight: link.data.normwt || 0
-          };
-        });
-        console.log("Edges for jLouvain ", edgesForLouvain);
-                /*
-                */
-        // Define minimum modularity improvement threshold
-        const MIN_MODULARITY_IMPROVEMENT = 0.00001; //001; //00001;
-                
-        // Run jLouvain algorithm
-        const communityAssignments = jLouvain(nodeIdsForLouvain, edgesForLouvain, MIN_MODULARITY_IMPROVEMENT);
-
-        // Add cluster information to node data before creating Cytoscape elements
-        nodes.forEach(nodeObj => {
-          const nodeId = nodeObj.data.id;
-          nodeObj.data.cluster = communityAssignments[nodeId];
-        });
-
-        // Create the graph object
         cy.add([...nodes, ...edges]);
-        /*  markov clustering stuff
-        // markov clustering creates an array of collections, each with node elements
-        let clusters = cy.elements().markovClustering({
-          attributes: [
-            function( edge ){ return edge.data('weight'); }
-          ]
-        });
-        //console.log("Clusters: ", clusters);
-
-        // Store cluster assignments in each node data
-        clusters.forEach((cluster, clusterId) => {
-          console.log("Storing cluster ",clusterId," in nodes");
-          cluster.forEach(node => {
-            const nodeId = node.id(); 
-            cy.getElementById(nodeId  ).data('cluster', clusterId);
-            console.log(" clusterId ", clusterId, " stored in ", nodeId);
-          });
-        });
-        */
+        
         // STYLING Apply styles based on properties
         cy.nodes().forEach((node, index) => {
-
-          const cluster = node.data('cluster');
-          if (!clusterNodes[cluster]) {
-            clusterNodes[cluster] = [];
-          }
-          clusterNodes[cluster].push(node.data('id'));
-
-          //node.style('background-color', clusterColors[cluster]);
-
           const similarity = node.data('similarity') || 0;
           const isQuery = (node.data('id') === 'query'); //node.data('id') === 'query';
           //const diameter = node.data('diameter');
-          console.log(" node.data('cluster') ", node.data('cluster'))
-          const csscolor = getClusterColor(cluster, clusterColors);//clusterColors[node.data('cluster')]; //`rgb(0, ${Math.round(55 + node.data('normsim') * 200)}, 0)`;
+          const csscolor = `rgb(0, ${Math.round(55 + node.data('normsim') * 200)}, 0)`;
           const label = node.data('label');
           node.style({
             'background-color': isQuery ? '#F3A73C' : csscolor, 
@@ -473,26 +356,16 @@
           });
         });
 
-        
-        for (const cluster in clusterNodes) {
-          constraints.push({
-            type: 'boundingBox',
-            boundingBox: {
-              x1: 0,
-              y1: 0,
-              x2: 1,
-              y2: 1
-            },
-            nodes: clusterNodes[cluster]
-          });
-        }
-/*
-        */
+        var clusters = cy.elements().markovClustering({
+          attributes: [
+            function( edge ){ return edge.data('closeness'); }
+          ]
+        });
+        //console.log("cy graph ", cy);
         // Apply force-directed layout
         updateElementStyles(cy);
         const layout = cy.layout({
-          name: 'fcose',
-          //constraints: constraints,
+          name: 'cose',
           idealEdgeLength: edge => {
             const scale = ((edge.data('weight') - edgeMin) / (edgeMax - edgeMin)); // Assuming similarity is stored in edge data
             const minLength = 30; // Minimum length for high similarity
@@ -505,7 +378,7 @@
           padding: 50,
           quality: "default",
           randomize: true,
-          nodeRepulsion: 200,
+          nodeRepulsion: 10000,
           nodeOverlap: 20,
           edgeElasticity: 0.45,
           gravity: .25, //0.25,
@@ -532,24 +405,40 @@
         //cy.off('zoom');
         
         // After layout completes, reattach zoom listener and apply styles
-        layout.on('layoutstop', () => {
+        //layout.on('layoutstop', () => {
           
           //updateElementStyles(cy);
-        });
+        //});
         
         
         layout.run();
-        cy.center();
-        cy.fit(undefined, 50);
+            /*
+        cy.on('dragfree', 'node', function(event) {
+          cy.layout({
+            name: 'cose',
+            animate: true,
+            springConstant: 0.2,
+            springLength: 100,
+            gravity: 0.8,
+            padding: 100
+          }).run();
+        });
+        */
+        //cy.center();
+        //cy.fit(undefined, 50);
       });
       nodeCount = data.nodes.length;
       edgeCount = data.links.length;
       graphStatus = `Rendered ${nodeCount} nodes and ${edgeCount} edges`;
       
       console.log("Netork graph updated successfully");
+      /*
       // Give the layout some time to complete
-      setTimeout(() => { cy.resize();  }, 500); // 500ms delay, adjust as needed
-      
+      setTimeout(() => {
+        
+        cy.resize();
+      }, 500); // 500ms delay, adjust as needed
+      */
      
           
     } catch (error) {

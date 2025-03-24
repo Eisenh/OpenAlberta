@@ -5,7 +5,7 @@
   import Graph from '../components/Graph.svelte';
   import GraphExpanded from '../components/GraphExpanded.svelte';
   import GraphSimilarity from '../components/GraphSimilarity.svelte';
-  import { searchHistory } from '../stores/searchHistory';
+  import { searchHistory } from '$stores/searchHistory';
   import { supabase } from '../supabaseClient';
   import { pipeline, env } from "@xenova/transformers";
   import { 
@@ -13,7 +13,6 @@
     filterGraphByThreshold 
   } from '../utils/similarity';
   import { displaySimilarityThreshold } from '../stores/graphSettings';
-  //import {jLouvain } from '../utils/louvain';
   
   //console.log("Local Model Path:", import.meta.env.BASE_URL + "models/");
  // env.localModelPath = import.meta.env.DEV  ? "/public/model/" :"/model/"; //import.meta.env.BASE_URL + "models/"; //"../public/models/";
@@ -41,12 +40,12 @@
   const doubleClickDelay = 300; // milliseconds (same as in graph components)
   
   // Search and display thresholds
-  let similarityThreshold = 0.3; // Search threshold
-  let minDisplayThreshold = 0.3; // Minimum display threshold (same as search threshold initially)
+  let similarityThreshold = 0.55; // Search threshold
+  let minDisplayThreshold = 0.55; // Minimum display threshold (same as search threshold initially)
   let resultCount = 50; // Maximum number of results to fetch
   
   // Maximum number of nodes to calculate similarities for
-  const MAX_SIMILARITY_NODES = 50;
+  const MAX_SIMILARITY_NODES = 100;
 
   // New stores for different graph views
   let compactGraphData = writable({ nodes: [], links: [] });  // contains 9 nodes
@@ -445,7 +444,7 @@
     //let counter = 0;
     let lnks =[];
     // Create graph links from query node to results
-    //console.log(" resultNodes ", resultNodes, " length ",resultNodes.length);
+    console.log(" resultNodes ", resultNodes, " length ",resultNodes.length);
     resultNodes.forEach((r) => {
       
       //counter = counter + 1;
@@ -460,14 +459,13 @@
     //console.log("Expanded lnks :", lnks, "length ",lnks.length);
     // Use all filtered nodes
     expandedGraphData.set({
-      nodes: [queryNode, ...filteredNodes],
+      nodes: [queryNode, ...resultNodes],
       links: lnks
     });
     console.log("ExpandedGraphData: ", get(expandedGraphData))
   }
 
-// First, let's modify the searchVectors function to return consistent data structure
-// searchVectors needs to return the whole data set and add a new node if the search was from text rather than a node click
+// searchVectors needs to return the whole data set and add a new first node if the search was from text rather than a node click
   async function searchVectors(queryText, rc = resultCount) {  //return { results, queryText }
     try {
       if ($modelInstance) {
@@ -537,7 +535,7 @@
               resources: item.metadata.resources || [],
               tags: item.metadata.tags || [],
               embedding: embedding,  // Store embeddings as array
-              similarity: item.similarity
+              similarity: Math.min(item.similarity, 1)
             };
           });
           
@@ -599,7 +597,7 @@
 
   // Double-click handler to perform a new search
   const handleDoubleClick = async (node) => {
-    //if (node.id === 'query') return;  // don't do anything if the clicked node is the query node.
+    if (node.id === 'query') return;  // don't do anything if the clicked node is the query node.
 
     if (!node?.description) {
       console.error("Cannot search without node description");
@@ -662,7 +660,7 @@
     }
     
     console.log("Result search with embedding vector");
-    clearGraphData();
+    //clearGraphData();
 
     try {
       // Use the embedding directly for search
@@ -684,9 +682,9 @@
         console.log("No vector search results found");
         return;
       }
-      
+      let results = {};
       // Process results similar to searchVectors function
-      const results = response.map((item) => {
+      results = response.map((item) => {
         // Process embedding - ensure it's an array
         let embedding = item.notes_embedding;
         
@@ -754,15 +752,14 @@ async function handleTextSearch(searchText) {  // only for search from search ba
   }
   const displayTitle = ' Search text : "' + searchInput + '"';
   // Store the clicked node in a separate store for single-click details display
-  selectedDataset.set({
+  selectedDataset.set({  // for display only. queryNode is constructed below.
     id: 'query',
     label: displayTitle,
-    description: 'Click on a node to display more information, including links to resources. Double-click to initiate a new search. Raise the similarity threshold slider to limit the results to those tht seem more similar to the search term.',
+    description: 'Click on a node to display more information, including links to resources. Double-click to initiate a new search. Raise the similarity threshold slider to limit the results to those that seem more similar to the search term. Nodes are colored by cluster.',
     resources:  [],
     tags:  [],
   });
   // Clear all graph data if no results
-  clearGraphData();
 
   try {
     console.log("Calling searchVectors with:", searchInput);
@@ -809,6 +806,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
     
     // Store the results with query node at index 0
     const resultsWithQuery = [queryNode, ...results];
+    console.log("resultsWithQuery ", resultsWithQuery);
     searchResults.set(resultsWithQuery);
     
     // Update min display threshold to match search threshold
@@ -816,7 +814,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
     displaySimilarityThreshold.set(similarityThreshold);
     
     // Update graph data based on current view mode
-    updateFilteredGraphData(resultsWithQuery);  // updates compact and expanded graph data sets
+    updateFilteredGraphData();  // updates compact and expanded graph data sets
     
     // Calculate the similarity matrix for all nodes. This will update $similarityGraphData, 
     // adding links to the graph display

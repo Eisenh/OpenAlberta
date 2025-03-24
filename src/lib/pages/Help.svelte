@@ -195,7 +195,7 @@
         <p>
           The similarity graph shows connections not only between your query and results, but also between 
           the result datasets themselves. This helps identify clusters of related datasets and reveals the 
-          underlying structure of the data ecosystem.
+          underlying structure of the data ecosystem. Clusters are automatically identified and assigned unique colors.
         </p>
         <p>
           In this view:

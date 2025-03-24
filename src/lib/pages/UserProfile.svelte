@@ -1,6 +1,6 @@
 <script>
   // @ts-nocheck - Svelte 5 TypeScript definition issues
-  import { searchHistory } from '../stores/searchHistory.js';
+  import { searchHistory } from '$stores/searchHistory.js';
   import { supabase } from '../supabaseClient.js';
   import { navigate } from '../stores/route.js';
   import { onMount } from 'svelte';
@@ -66,7 +66,7 @@
   }
   
   function formatDate(timestamp) {
-    if (timestmp) {
+    if (timestamp) {
       const date = new Date(timestamp);
       return new Intl.DateTimeFormat('en-CA', {
         month: 'short',

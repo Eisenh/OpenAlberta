@@ -37,6 +37,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         $lib: resolve("./src/lib"),
+        $stores: resolve("./src/lib/stores"),
       },
     },
     server: {
