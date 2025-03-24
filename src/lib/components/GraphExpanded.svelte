@@ -36,7 +36,7 @@
     simMax = Math.max(...data.nodes.slice(1).map(obj => obj.similarity)); // ignore query node sim of 1
     simMin = Math.min(...data.nodes.map(obj => obj.similarity));
 
-    console.log(" sinMin ",simMin, "  max ", simMax, " edgeMin ",edgeMin, " edgeMax ", edgeMax )
+//    console.log(" sinMin ",simMin, "  max ", simMax, " edgeMin ",edgeMin, " edgeMax ", edgeMax )
     updateGraph(data);
     
   }
@@ -78,7 +78,7 @@
       return;
     }
     
-    console.log("Initializing Expanded Cytoscape graph ");
+//    console.log("Initializing Expanded Cytoscape graph ");
     
     cytoscape.use(fcose);
     cy = cytoscape({
@@ -242,7 +242,7 @@
       return;
     }
 
-    console.log("Received graph data in expanded view:", data);
+//    console.log("Received graph data in expanded view:", data);
 
     try {
       cy.batch(() => {
@@ -349,7 +349,7 @@
       edgeCount = data.links.length;
       graphStatus = `Rendered ${nodeCount} nodes and ${edgeCount} edges`;
       
-      console.log("Expanded graph updated successfully with ", nodeCount, " nodes, ", edgeCount, " edges");
+//      console.log("Expanded graph updated successfully with ", nodeCount, " nodes, ", edgeCount, " edges");
     } catch (error) {
       console.error("Error updating expanded graph:", error);
       graphStatus = `Error: ${error.message}`;

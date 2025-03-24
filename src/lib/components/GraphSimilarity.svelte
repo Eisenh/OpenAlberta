@@ -131,7 +131,7 @@
       graphStatus = "Error: Data not passed ";
       return;
     }
-    console.log("Initializing Similarity Cytoscape graph");
+//    console.log("Initializing Similarity Cytoscape graph");
     
     cytoscape.use(cola);
     cy = cytoscape({
@@ -289,7 +289,7 @@
     simMin = Math.min(...data.nodes.map(obj => obj.similarity));
     updateGraph(data);
     */
-    console.log("Network graph component initialized with data:", data);
+    console.log("initGraph: ", data);
   }
 
   function updateGraph(data) {
@@ -298,7 +298,7 @@
       return;
     }
 
-    console.log("Received graph data in network view:", data);
+//    console.log("Received graph data in network view:", data);
 
     try {
       cy.batch(() => {
@@ -369,13 +369,13 @@
           data: { ...link }
           }
         });
-        console.log(" Data ", " nodes ", nodes.length, " edges", edges.length)
+//        console.log(" Data ", " nodes ", nodes.length, " edges", edges.length)
 
         let nodeIdsForLouvain = [];
         nodeIdsForLouvain = nodes.map((node) => {
           return node.data.id;  //returs nodeIds
         });
-        console.log("Nodes for jLouvain ", nodeIdsForLouvain);
+//        console.log("Nodes for jLouvain ", nodeIdsForLouvain);
 
         let edgesForLouvain = [];
         // Now create the edges with error checking
@@ -388,7 +388,7 @@
             weight: link.data.normwt || 0
           };
         });
-        console.log("Edges for jLouvain ", edgesForLouvain);
+ //       console.log("Edges for jLouvain ", edgesForLouvain);
                 /*
                 */
         // Define minimum modularity improvement threshold
@@ -438,7 +438,7 @@
           const similarity = node.data('similarity') || 0;
           const isQuery = (node.data('id') === 'query'); //node.data('id') === 'query';
           //const diameter = node.data('diameter');
-          console.log(" node.data('cluster') ", node.data('cluster'))
+//          console.log(" node.data('cluster') ", node.data('cluster'))
           const csscolor = getClusterColor(cluster, clusterColors);//clusterColors[node.data('cluster')]; //`rgb(0, ${Math.round(55 + node.data('normsim') * 200)}, 0)`;
           const label = node.data('label');
           node.style({
@@ -476,10 +476,10 @@
               'target-arrow-color': '#F3A73C',
               'line-gradient-stop-colors': null // Remove any gradient
             });
-            console.log("L471 edge formating ",sourceCluster, targetCluster, sourceColor );
+ //           console.log("L471 edge formating ",sourceCluster, targetCluster, sourceColor );
           } else if (sourceCluster === targetCluster ) {
             // Intra-cluster edge - use the cluster color            
-            console.log("L471 edge formating ",sourceCluster, targetCluster, sourceColor );
+//            console.log("L471 edge formating ",sourceCluster, targetCluster, sourceColor );
             edge.style({
               'line-color': sourceColor,
               'target-arrow-color': sourceColor,
@@ -488,7 +488,7 @@
           } else {
             // Inter-cluster edge - use gradient
             
-            console.log("L471 edge formating ",sourceCluster, targetCluster, sourceColor );
+//            console.log("L471 edge formating ",sourceCluster, targetCluster, sourceColor );
             edge.style({
               'line-gradient-stop-colors': [sourceColor, targetColor],
               'line-gradient-stop-positions': [0, 100],
@@ -596,7 +596,7 @@
 
   onMount(() => {
     //if (container.clientWidth === 0 || container.clientHeight === 0) {
-      console.log("Container width", container.clientWidth);
+ //     console.log("Container width", container.clientWidth);
     //}
     initGraph();
     

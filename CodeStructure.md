@@ -1,5 +1,8 @@
 # Code Structure Documentation
 
+**** Note: this file was Ai generated and oits some of the tehnial debt that is already plauging the app.  For thediffernt view, some details are hndled in Laning.selte, while some are handled in the various graph components. The way the data is hndled differes between componets because of their dev history. We really should simplify that.
+***  
+
 ## 1. Project Overview
 
 This project is a Svelte application with Supabase integration for searching and visualizing Alberta Open Data. The application uses vector embeddings for semantic search and graph visualization.
