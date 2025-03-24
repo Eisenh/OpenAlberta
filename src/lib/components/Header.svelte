@@ -6,15 +6,19 @@
   import ThemeSwitcher from './ThemeSwitcher.svelte';
 
   let session = null;
-  let showSettingsMenu = false;
+ let showSettingsMenu = false;
 
   onMount(async () => {
-    const { data: { session: initialSession } } = await supabase.auth.getSession();
-    session = initialSession;
+    const { data: { user } } = await supabase.auth.getUser();
 
-    supabase.auth.onAuthStateChange((event, _session) => {
-      session = _session;
-    });
+    if (user) {
+      const { data: { session: initialSession } } = await supabase.auth.getSession();
+      session = initialSession;
+
+      supabase.auth.onAuthStateChange((event, _session) => {
+        session = _session;
+      });
+    }
     
     // Close settings menu when clicking outside
     const handleClickOutside = (event) => {

@@ -31,7 +31,10 @@ export default defineConfig(({ mode }) => {
     publicDir: 'public',
     define: {
       // This ensures environment variables are properly replaced during build
-     "process.env": env,
+      "process.env": {
+        ...env,
+        GITHUB_PAGES: mode === 'production',
+      },
     },
     plugins: [svelte()],
     resolve: {

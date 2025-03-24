@@ -834,6 +834,8 @@ async function handleTextSearch(searchText) {  // only for search from search ba
             <div class="search-with-history">
               <input
                 type="text"
+                id="search-input"
+                name="search-input"
                 bind:value={searchInput}
                 placeholder="What data are you looking for?"
                 class="search-input"
@@ -893,7 +895,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
           <div class="graph-controls">
             <label class="control-group">
               <span class="control-label">View Mode:</span>
-              <select bind:value={$displayMode} class="mode-select">
+              <select id="mode-select" name="mode-select" bind:value={$displayMode} class="mode-select">
                 <option value="compact">Compact</option>
                 <option value="expanded">Expanded</option>
                 <option value="similarity">Similarity Network</option>
@@ -975,23 +977,26 @@ async function handleTextSearch(searchText) {  // only for search from search ba
       </div>
       <div class="right-panel">
         <div class="graph-container">
-          {#if $modelLoadError}
-            <div class="model-load-error">
+          {#if $isModelLoading}
+            <div class="loading-overlay">
+              <p>Loading model... {$modelLoadingProgress}%</p>
+            </div>
+          {:else if $modelLoadError}
+            <div class="no-results-overlay">
               <p>{$modelLoadError}</p>
             </div>
+          {:else if $searchResults.length <= 1 && query}
+            <div class="no-results-overlay">
+              <p>No results found for "{query}"</p>
+              <p>Try lowering the similarity threshold or using different search terms</p>
+            </div>
           {:else}
-            {#if $isModelLoading}
-              <div class="model-loading-indicator">
-                <p>Loading model... {$modelLoadingProgress}%</p>
-              </div>
-            {:else}
-              {#if $displayMode === 'compact'}
-                <Graph data={$compactGraphData} onNodeClick={handleNodeClick} onNodeDblClick={handleDoubleClick}/>
-              {:else if $displayMode === 'expanded'}
-                <GraphExpanded data={$expandedGraphData} onNodeClick={handleNodeClick} onNodeDblClick={handleDoubleClick} />
-              {:else if $displayMode === 'similarity'}
-                <GraphSimilarity data={$similarityGraphData} onNodeClick={handleNodeClick} onNodeDblClick={handleDoubleClick} />
-              {/if}
+            {#if $displayMode === 'compact'}
+              <Graph data={$compactGraphData} onNodeClick={handleNodeClick} onNodeDblClick={handleDoubleClick}/>
+            {:else if $displayMode === 'expanded'}
+              <GraphExpanded data={$expandedGraphData} onNodeClick={handleNodeClick} onNodeDblClick={handleDoubleClick} />
+            {:else if $displayMode === 'similarity'}
+              <GraphSimilarity data={$similarityGraphData} onNodeClick={handleNodeClick} onNodeDblClick={handleDoubleClick} />
             {/if}
           {/if}
         </div>
@@ -1351,17 +1356,6 @@ async function handleTextSearch(searchText) {  // only for search from search ba
     font-size: var(--font-size-sm);
     background-color: var(--color-background);
   }
-  
-  .model-load-error {
-    color: var(--color-error);
-    padding: var(--spacing-md);
-    text-align: center;
-  }
-  
-  .model-loading-indicator {
-    padding: var(--spacing-md);
-    text-align: center;
-  }
 
   .graph-controls {
     display: flex;
@@ -1492,5 +1486,49 @@ async function handleTextSearch(searchText) {  // only for search from search ba
   margin-left: var(--spacing-md);
   font-size: 0.8rem;
   color: var(--color-text-light);
+}
+
+.no-results-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  color: var(--color-text-light);
+  font-size: 1.2rem;
+  text-align: center;
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+}
+
+.no-results-overlay p {
+  margin-bottom: var(--spacing-md);
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  color: var(--color-text-light);
+  font-size: 1.2rem;
+  text-align: center;
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+}
+
+.loading-overlay p {
+  margin-bottom: var(--spacing-md);
 }
 </style>

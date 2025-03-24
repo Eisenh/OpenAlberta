@@ -2,9 +2,12 @@ import { writable } from 'svelte/store';
 
 export const currentRoute = writable('/');
 
+const base = "/OpenAlberta/";
+
 export function navigate(path) {
-  currentRoute.set(path);
-  history.pushState(null, '', path);
+  const fullPath = import.meta.env.GITHUB_PAGES ? base + path : path;
+  currentRoute.set(fullPath);
+  history.pushState(null, '', fullPath);
 }
 
 if (typeof window !== 'undefined') {
