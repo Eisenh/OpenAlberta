@@ -741,7 +741,7 @@
 // Handle text search
 async function handleTextSearch(searchText) {  // only for search from search bar
   // tries to search vectors, or fallback to text search
-//  console.log("handleTextSearch called");
+  console.log("handleTextSearch called");
   if (!searchInput?.trim()) {
     console.log("Empty search input, returning");
     if (searchText) {
@@ -765,7 +765,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
     const { results } = await searchVectors(searchInput, resultCount);  //reults must be the array of nodes
 
   //  console.log("Search raw results:", results);
-    // results.sort((a, b) => b.similarity - a.similarity);
+    results.sort((a, b) => b.similarity - a.similarity);
     // console.log("Sorted results:", results);
 
     if (!results || results.length === 0) {
