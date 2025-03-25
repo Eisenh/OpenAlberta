@@ -6,7 +6,7 @@ const base = "/OpenAlberta";
 
 export function navigate(path) {
   
-  const fullPath =  import.meta.env.VITE_GITHUB_PAGES ? path : base + path ;
+  const fullPath =  import.meta.env.VITE_GITHUB_PAGES ?  base + path: path ;
   console.log("Env. ", import.meta.env.VITE_GITHUB_PAGES, "Navigate to ", fullPath);
   currentRoute.set(fullPath);
   history.pushState(null, '', fullPath);
