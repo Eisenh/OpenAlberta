@@ -43,18 +43,18 @@
 
   // Function to update element styles based on threshold and zoom
   function updateElementStyles(graph) {
-    const scaleFactor = 2 / (graph.zoom());
+     // Ensure zoom is never zero to prevent division by zero
+    const zoom = Math.max(0.00001, graph.zoom() || 0.00001);
+    const scaleFactor = 2 / zoom;
     const fontsize = 12 * scaleFactor + "px";
     
     // Update nodes
     graph.nodes().forEach(node => {
-      let newSize = node.data('diameter') * scaleFactor;
+      let newSize = 30* node.data('similarity') * scaleFactor;
       node.style({
           'width': newSize,
           'height': newSize,
           'font-size': fontsize,
-          'text-wrap': 'wrap',
-          'text-max-width': '100px'
       });
     });
     
@@ -258,7 +258,7 @@
         const elements = data.nodes.map((node, index) => {
         // Calculate radius inversely proportional to similarity
         const minDistance = 5;  // Minimum distance from center
-        const maxDistance = 100; // Maximum distance from center
+        const maxDistance = 300; // Maximum distance from center
         let norm = 0;
         // Use similarity to determine radius - higher similarity means closer to center
         // Default to maxDistance if similarity is missing or too low
@@ -276,8 +276,8 @@
             position: { x: 0, y: 0 }
           };
         }
-        node.distance = minDistance + minDistance / norm;// * (simMax - similarity)/(simMax - simMin) ;
-        node.diameter = 200/ node.distance;
+        node.distance = minDistance + minDistance / (norm * norm);// * (simMax - similarity)/(simMax - simMin) ;
+        node.diameter = Math.max(10 + 20 * norm, 20);
         //console.log("distance ",index, " " , node.distance, "  similarity ",similarity, " norm ", norm)
         
         // Place nodes in a circle with radius based on similarity

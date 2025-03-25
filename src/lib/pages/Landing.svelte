@@ -551,7 +551,7 @@
       } else {
         // Fallback to text search with same return structure
         const { data, error } = await supabase
-          .from('docs')
+          .from('docs_meta')
           .select('id, metadata')
           .or(`metadata->>title.ilike.%${queryText}%,metadata->>description.ilike.%${queryText}%,metadata->>notes.ilike.%${queryText}%`)
           .limit(resultCount);

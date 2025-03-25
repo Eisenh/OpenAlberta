@@ -10,6 +10,26 @@
   let errorMessage = '';
   let successMessage = '';
 
+  async function handleResendConfirmation() {
+    loading = true;
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email
+      });
+
+      if (error) {
+        errorMessage = error.message;
+      } else {
+        successMessage = 'Confirmation email resent! Please check your inbox.';
+      }
+    } catch (error) {
+      errorMessage = error.message;
+    } finally {
+      loading = false;
+    }
+  }
+
   async function handleSignUp() {
     loading = true;
     errorMessage = '';
@@ -34,7 +54,7 @@
       } else {
         // Check if email confirmation is required
         if (data?.user?.identities?.length === 0) {
-          successMessage = 'This email is already registered. Please check your email for the confirmation link.';
+          successMessage = 'This email is already registered.';
         } else {
           successMessage = 'Sign up successful! Please check your email for the confirmation link.';
         }
@@ -55,7 +75,10 @@
   <div class="auth-card">
     <div class="auth-header">
       <h1>Create Account</h1>
-      <p class="subtitle">Join Alberta Open Data to start exploring datasets</p>
+      <p class="subtitle">Sign up to store your search history, and to use advanced features</p>
+      <p> There are no advanced features yet ;)</p>
+       <p>To be clear - no account is needed to use the app, and your browser local storage will still keep you search history until you clear the cache.</p>
+  
     </div>
 
     {#if errorMessage}
@@ -67,6 +90,23 @@
     {#if successMessage}
       <div class="message success">
         <p>{successMessage}</p>
+        {#if data?.user?.identities?.length === 0}
+          <div class="resend-container">
+            <p>Didn't receive the confirmation email?</p>
+            <button 
+              on:click|preventDefault={handleResendConfirmation}
+              class="auth-button secondary"
+              disabled={loading}
+            >
+              {#if loading}
+                <span class="loading-spinner"></span>
+                Sending...
+              {:else}
+                Resend Confirmation Email
+              {/if}
+            </button>
+          </div>
+        {/if}
       </div>
     {/if}
 

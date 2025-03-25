@@ -2,7 +2,7 @@
 import { processPackages } from './populate_supabase_docs_service_role.js';
 
 // Set a limit for how many packages to process (optional)
-const LIMIT = 10; // Start with a small number for testing
+const LIMIT = 35000; // Start with a small number for testing
 
 // Run the function and log the result
 processPackages(LIMIT)

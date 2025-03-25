@@ -46,7 +46,7 @@
   function updateElementStyles(graph) {
      // Ensure zoom is never zero to prevent division by zero
     const zoom = Math.max(0.00001, graph.zoom() || 0.00001);
-    const scaleFactor = 1.1 / zoom;
+    const scaleFactor = 2 / zoom;
     const fontsize = 12 * scaleFactor + "px";
     
     // Update nodes

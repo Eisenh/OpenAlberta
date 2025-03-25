@@ -38,7 +38,7 @@
   <div class="auth-card">
     <div class="auth-header">
       <h1>Welcome Back</h1>
-      <p class="subtitle">Sign in to your account to access Alberta Open Data</p>
+      <p class="subtitle">Sign in to retrieve your search history</p>
     </div>
 
     {#if errorMessage}
