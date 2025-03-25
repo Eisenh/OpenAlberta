@@ -1,25 +1,14 @@
 <script>
   // @ts-nocheck - Svelte 5 TypeScript definition issues
   import { supabase } from '../supabaseClient';
+  import { session } from '../stores/session';
   import { currentRoute, navigate } from '../stores/route';
   import { onMount } from 'svelte';
   import ThemeSwitcher from './ThemeSwitcher.svelte';
 
-  let session = null;
- let showSettingsMenu = false;
+  let showSettingsMenu = false;
 
-  onMount(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-      const { data: { session: initialSession } } = await supabase.auth.getSession();
-      session = initialSession;
-
-      supabase.auth.onAuthStateChange((event, _session) => {
-        session = _session;
-      });
-    }
-    
+  onMount(() => {
     // Close settings menu when clicking outside
     const handleClickOutside = (event) => {
       const settingsMenu = document.getElementById('settings-menu');
@@ -65,10 +54,10 @@
         <nav class="main-nav">
           <ul>
             <li><a href="/" on:click|preventDefault={() => navigate('/')}>Home</a></li>
-            {#if session?.user?.app_metadata?.claims_admin}
+            {#if $session?.user?.app_metadata?.claims_admin}
               <li><a href="/admin" on:click|preventDefault={() => navigate('/admin')}>Admin</a></li>
             {/if}
-            {#if session}
+          {#if $session}
               <li><a href="/profile" on:click|preventDefault={() => navigate('/profile')}>Profile</a></li>
             {/if}
             <li><a href="/help" on:click|preventDefault={() => navigate('/help')}>Help</a></li>
@@ -96,9 +85,9 @@
               </div>
             </div>
           {/if}
-          {#if session}
+          {#if $session}
             <div class="user-profile">
-              <span class="user-email">{session.user.email.split('@')[0]}</span>
+              <span class="user-email">{$session.user.email.split('@')[0]}</span>
               <button class="outline" on:click={signOut}>Sign Out</button>
             </div>
           {:else}
