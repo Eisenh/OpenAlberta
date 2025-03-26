@@ -23,12 +23,13 @@
       const hashParams = new URLSearchParams(hash.substring(1));
       const authType = hashParams.get('type');  // This properly gets the 'type' parameter only
 
-      console.log("Auth type:", authType);
-      console.log("hashparams Auth type:", authType, "hashParams: ", hashParams);
+      console.log("404 Auth type:", authType);
+      console.log("404 hashparams Auth type:", authType, "hashParams: ", hashParams);
 
       function getParameterByName(name, url) {
         name = name.replace(/[\[\]]/g, '\\$&');
-        const regex = new RegExp('[&?]' + name + '(=([^&#]*)|&|#|$)'),
+        // Add word boundaries to prevent partial matches
+        const regex = new RegExp('[&?]\\b' + name + '\\b(=([^&#]*)|&|#|$)'),
           results = regex.exec(url);
         if (!results) return null;
         if (!results[2]) return '';
@@ -37,7 +38,7 @@
       
       const fragment = window.location.hash.substring(1);
       const type = getParameterByName('type', fragment);
-      conole.log("in 404, type = ", type, " BaseURL: ", baseUrl, "  Fragment: ", fragment);
+      console.log("404, type = ", type, " Fragment: ", fragment);
 
 
       // Determine the correct route based on the type parameter
@@ -62,7 +63,7 @@
             redirectRoute = '#/';
         }
       }
-
+      console.log("404 redirect top ", `${projectPath}${redirectRoute}${hash}`);
       // Redirect to the appropriate page with the token
       window.location.replace(`${projectPath}${redirectRoute}${hash}`);
     }
@@ -95,6 +96,7 @@
         (location.search ? '&q=' + location.search.slice(1).replace(/&/g, '~and~') : '') +
         (location.hash || '');
 
+          Console.log("404 normal redirectUrl", redirectUrl)
       window.location.replace(redirectUrl);
     }
   </script>
@@ -104,7 +106,7 @@
   <h1>Redirecting...</h1>
   <p>
     If you are not redirected automatically, follow this
-    <a href="/">link to the homepage</a>.
+    <a href="#/">link to the homepage</a>.
   </p>
 </body>
 
