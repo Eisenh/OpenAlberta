@@ -9,34 +9,78 @@
     // https://github.com/rafgraph/spa-github-pages
     // This script takes the current URL and redirects to the same path at the
     // main index.html file, allowing client-side routing to handle the path
-    (function(l) {
-      if (l.search[1] === '/' ) {
-        var decoded = l.search.slice(1).split('&').map(function(s) { 
-          return s.replace(/~and~/g, '&')
-        }).join('?');
-        window.history.replaceState(null, null,
-            l.pathname.slice(0, -1) + decoded + l.hash
-        );
+    
+    // Special handling for Supabase auth tokens (for any auth flow)
+    if (window.location.hash && window.location.hash.includes('access_token=')) {
+      console.log("Detected access token in URL hash");
+      
+      const hash = window.location.hash;
+      const projectPath = '';  // Update this if needed for your project
+      
+      // Parse the hash parameters using proper URL parameter extraction
+      // Fix: Use URLSearchParams to correctly extract the 'type' parameter (not token_type)
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const authType = hashParams.get('type');  // This properly gets the 'type' parameter only
+      
+      console.log("Auth type:", authType);
+      
+      // Determine the correct route based on the type parameter
+      let redirectRoute = '/';
+      
+      if (authType) {
+        // Route based on the auth type
+        switch (authType) {
+          case 'recovery':
+            redirectRoute = '/#/reset-password';
+            break;
+          case 'email':
+            redirectRoute = '/#/verify-email';
+            break;
+          case 'signup':
+            redirectRoute = '/#/verify-email';
+            break;
+          case 'magiclink':
+            redirectRoute = '/#/login';
+            break;
+          default:
+            redirectRoute = '/';
+        }
       }
-    }(window.location))
-    
-    // Get the base path from the <base> tag if it exists, or default to '/'
-    var basePath = document.querySelector('base') ? document.querySelector('base').getAttribute('href') : '/';
-    
-    // Redirect to the index page with the current path
-    var segmentCount = 0;
-    var location = window.location;
-    
-    // GitHub Pages serves 404.html from the repo root, so we need to redirect
-    // to the correct path based on the repository name (which is encoded in the base path)
-    var redirectUrl = location.protocol + '//' + location.hostname + 
-                     (location.port ? ':' + location.port : '') + 
-                     basePath.replace(/\/$/, '') + 
-                     '/?p=' + location.pathname.slice(1).replace(/&/g, '~and~') +
-                     (location.search ? '&q=' + location.search.slice(1).replace(/&/g, '~and~') : '') +
-                     (location.hash || '');
-                     
-    window.location.replace(redirectUrl);
+      
+      // Redirect to the appropriate page with the token
+      window.location.replace(`${projectPath}${redirectRoute}${hash}`);
+    } 
+    // Standard SPA GitHub Pages redirect for non-auth URLs
+    else {
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location))
+      
+      // Get the base path from the <base> tag if it exists, or default to '/'
+      var basePath = document.querySelector('base') ? document.querySelector('base').getAttribute('href') : '/';
+      
+      // Redirect to the index page with the current path
+      var segmentCount = 0;
+      var location = window.location;
+      
+      // GitHub Pages serves 404.html from the repo root, so we need to redirect
+      // to the correct path based on the repository name (which is encoded in the base path)
+      var redirectUrl = location.protocol + '//' + location.hostname + 
+                       (location.port ? ':' + location.port : '') + 
+                       basePath.replace(/\/$/, '') + 
+                       '/?p=' + location.pathname.slice(1).replace(/&/g, '~and~') +
+                       (location.search ? '&q=' + location.search.slice(1).replace(/&/g, '~and~') : '') +
+                       (location.hash || '');
+                       
+      window.location.replace(redirectUrl);
+    }
   </script>
 </head>
 <body>
