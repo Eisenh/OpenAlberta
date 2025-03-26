@@ -13,11 +13,14 @@
   async function handleResendConfirmation() {
     loading = true;
     try {
+      // Get the base path from environment variable
+      const basePath = import.meta.env.VITE_GITHUB_PAGES || '';
+      
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: email,
         options: {
-          redirectTo: `${window.location.origin}/#/verify-email`,
+          redirectTo: `${window.location.origin}${basePath}/#/verify-email`,
         }
       });
 
@@ -47,11 +50,14 @@
 
     try {
       // Sign up with email and password
+      // Get the base path from environment variable
+      const basePath = import.meta.env.VITE_GITHUB_PAGES || '';
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/#/verify-email`
+          emailRedirectTo: `${window.location.origin}${basePath}/#/verify-email`
         }
       });
 

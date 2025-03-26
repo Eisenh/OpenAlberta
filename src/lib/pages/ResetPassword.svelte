@@ -30,6 +30,7 @@
       
       // Clean up the URL by removing the access token
       // This prevents token leakage and accidental reuse
+      const basePath = import.meta.env.VITE_GITHUB_PAGES || '';
       const newHash = '#/reset-password';
       window.history.replaceState(null, '', newHash);
     } else {
@@ -43,10 +44,11 @@
     successMessage = '';
 
     try {
-      // Use the base path from vite.config.js
-      const basePath = '/OpenAlberta'; 
+      // Get the base path from environment variable
+      const basePath = import.meta.env.VITE_GITHUB_PAGES || '';
       
       // Make sure the redirectTo URL includes the base path
+      // This needs to be the FULL URL including domain for Supabase auth
       const fullRedirectUrl = `${window.location.origin}${basePath}/#/reset-password`;
       console.log("Reset password redirect URL:", fullRedirectUrl);
       

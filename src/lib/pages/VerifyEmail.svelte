@@ -13,10 +13,12 @@
     // Check if we have an access token in the URL (for email verification)
     // The hash format will be like #/verify-email#access_token=xxx&type=email
     const hash = window.location.hash;
-    const tokenMatch = hash.match(/access_token=([^&]+)/);
-    const typeMatch = hash.match(/type=([^&]+)/);
+    // Use URLSearchParams for more reliable parameter extraction
+    const hashParams = new URLSearchParams(hash.replace(/^#\/verify-email#/, ''));
+    const accessToken = hashParams.get('access_token');
+    const authType = hashParams.get('type');
 
-    if (tokenMatch && tokenMatch[1] && typeMatch && typeMatch[1] === 'email') {
+    if (accessToken && (authType === 'email' || authType === 'signup')) {
       // Clean up the URL by removing the access token
       const newHash = '#/verify-email';
       window.history.replaceState(null, '', newHash);
@@ -60,8 +62,8 @@
     successMessage = '';
 
     try {
-      // Use the base path from vite.config.js
-      const basePath = '/OpenAlberta';
+      // Get the base path from environment variable
+      const basePath = import.meta.env.VITE_GITHUB_PAGES || '';
       
       const { error } = await supabase.auth.resend({
         type: 'signup',
