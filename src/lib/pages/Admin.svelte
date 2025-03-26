@@ -245,7 +245,7 @@
       <div class="message warning">
         <p>This page requires administrator privileges</p>
       </div>
-      <a href="/" class="button" on:click|preventDefault={() => navigate('/')}>Return to Home</a>
+      <a href="#/" class="button" on:click|preventDefault={() => navigate('/')}>Return to Home</a>
     </div>
   {/if}
 </div>

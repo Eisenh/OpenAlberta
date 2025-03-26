@@ -63,7 +63,7 @@
       <div class="form-group">
         <div class="password-header">
           <label for="password">Password</label>
-          <a href="/reset-password" class="forgot-password" on:click|preventDefault={() => alert('Password reset functionality not implemented yet.')}>
+          <a href="#/reset-password" class="forgot-password" on:click|preventDefault={() => alert('Password reset functionality not implemented yet.')}>
             Forgot password?
           </a>
         </div>
@@ -90,7 +90,7 @@
     <div class="auth-footer">
       <p>
         New to Alberta Open Data? 
-        <a href="/signup" on:click|preventDefault={() => navigate('/signup')}>Create an account</a>
+        <a href="#/signup" on:click|preventDefault={() => navigate('/signup')}>Create an account</a>
       </p>
     </div>
   </div>

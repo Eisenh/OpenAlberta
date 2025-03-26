@@ -53,15 +53,15 @@
       
         <nav class="main-nav">
           <ul>
-            <li><a href="/" on:click|preventDefault={() => navigate('/')}>Home</a></li>
+            <li><a href="#/" on:click|preventDefault={() => navigate('/')}>Home</a></li>
             {#if $session?.user?.app_metadata?.claims_admin}
-              <li><a href="/admin" on:click|preventDefault={() => navigate('/admin')}>Admin</a></li>
+              <li><a href="#/admin" on:click|preventDefault={() => navigate('/admin')}>Admin</a></li>
             {/if}
           {#if $session}
-              <li><a href="/profile" on:click|preventDefault={() => navigate('/profile')}>Profile</a></li>
+              <li><a href="#/profile" on:click|preventDefault={() => navigate('/profile')}>Profile</a></li>
             {/if}
-            <li><a href="/help" on:click|preventDefault={() => navigate('/help')}>Help</a></li>
-            <li><a href="/terms" on:click|preventDefault={() => navigate('/terms')}>Terms</a></li>
+            <li><a href="#/help" on:click|preventDefault={() => navigate('/help')}>Help</a></li>
+            <li><a href="#/terms" on:click|preventDefault={() => navigate('/terms')}>Terms</a></li>
           </ul>
         </nav>
         <div class="user-controls">
@@ -91,8 +91,8 @@
               <button class="outline" on:click={signOut}>Sign Out</button>
             </div>
           {:else}
-            <a href="/login" class="button outline" on:click|preventDefault={() => navigate('/login')}>Login</a>
-            <a href="/signup" class="button" on:click|preventDefault={() => navigate('/signup')}>Sign Up</a>
+            <a href="#/login" class="button outline" on:click|preventDefault={() => navigate('/login')}>Login</a>
+            <a href="#/signup" class="button" on:click|preventDefault={() => navigate('/signup')}>Sign Up</a>
           {/if}
          
           

@@ -77,8 +77,8 @@
       <h1>Create Account</h1>
       <p class="subtitle">Sign up to store your search history, and to use advanced features</p>
       <p> There are no advanced features yet ;)</p>
-       <p>To be clear - no account is needed to use the app, and your browser local storage will still keep you search history until you clear the cache.</p>
-  
+      <p>To be clear - no account is needed to use the app, and your browser local storage will still keep your recent search history until you clear the cache.</p>
+      
     </div>
 
     {#if errorMessage}
@@ -170,7 +170,7 @@
     <div class="auth-footer">
       <p>
         Already have an account? 
-        <a href="/login" on:click|preventDefault={() => navigate('/login')}>Sign in</a>
+        <a href="#/login" on:click|preventDefault={() => navigate('/login')}>Sign in</a>
       </p>
     </div>
   </div>

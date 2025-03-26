@@ -159,7 +159,7 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
             <p>You haven't performed any searches yet</p>
-            <a href="/" class="button outline" on:click|preventDefault={() => navigate('/')}>Start Searching</a>
+            <a href="#/" class="button outline" on:click|preventDefault={() => navigate('/')}>Start Searching</a>
           </div>
         {/if}
       </div>
@@ -169,7 +169,7 @@
       <div class="message warning">
         <p>Please log in to view your profile</p>
       </div>
-      <a href="/login" class="button" on:click|preventDefault={() => navigate('/login')}>Go to Login</a>
+      <a href="#/login" class="button" on:click|preventDefault={() => navigate('/login')}>Go to Login</a>
     </div>
   {/if}
 </div>

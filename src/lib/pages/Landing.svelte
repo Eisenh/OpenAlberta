@@ -753,7 +753,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
   selectedDataset.set({  // for display only. queryNode is constructed below.
     id: 'query',
     label: displayTitle,
-    description: 'Click on a node to display more information, including links to resources. Double-click to initiate a new search. Raise the similarity threshold slider to limit the results to those that seem more similar to the search term. Nodes are colored by cluster.',
+    description: 'Click on a node to display more information, including links to resources. Double-click to initiate a new search. See the help tab for more search hints.',
     resources:  [],
     tags:  [],
   });
