@@ -20,19 +20,19 @@ if (typeof window !== 'undefined') {
 
     // Initial route setup
     window.addEventListener('load', () => {
-        console.log("Window load event - initializing routes");
-        console.log("Current URL:", window.location.href);
+        console.log("rjs Window load event - initializing routes");
+        console.log("rjs Current URL:", window.location.href);
         
         // Check for Supabase auth tokens
         const hash = window.location.hash;
-        console.log("Current hash:", hash);
+        console.log("rjs Current hash:", hash);
 
         // Handle GitHub Pages redirection when an access token is present but we're at root domain
         if (hash.includes('access_token=') && 
             window.location.hostname.includes('github.io') && 
             !window.location.pathname.includes(base)) {
             
-            console.log("Detected access token at root domain, redirecting to correct path");
+            console.log("rjs Detected access token at root domain, redirecting to correct path");
             
             // Determine the correct route based on the type parameter
             let redirectRoute = '/';
@@ -40,7 +40,7 @@ if (typeof window !== 'undefined') {
             
             if (typeMatch && typeMatch[1]) {
                 const authType = typeMatch[1];
-                console.log("Auth type:", authType);
+                console.log("rjs Auth type:", authType);
                 
                 // Route based on the auth type
                 switch (authType) {
