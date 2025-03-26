@@ -3,15 +3,26 @@
   import { searchHistory } from '$stores/searchHistory.js';
   import { supabase } from '../supabaseClient.js';
   import { navigate } from '../stores/route.js';
+  import { onMount } from 'svelte';
 
   let email = '';
   let password = '';
   let loading = false;
   let errorMessage = '';
+  let successMessage = '';
+
+  onMount(() => {
+    // Check URL parameters for password reset success message
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery') && hash.includes('access_token=')) {
+      successMessage = 'Your password has been reset successfully. Please sign in with your new password.';
+    }
+  });
 
   async function handleLogin() {
     loading = true;
     errorMessage = '';
+    successMessage = '';
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -44,6 +55,12 @@
     {#if errorMessage}
       <div class="message error">
         <p>{errorMessage}</p>
+      </div>
+    {/if}
+
+    {#if successMessage}
+      <div class="message success">
+        <p>{successMessage}</p>
       </div>
     {/if}
 
@@ -130,6 +147,24 @@
 
   .auth-form {
     margin-bottom: var(--spacing-xl);
+  }
+
+  .message {
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .error {
+    background-color: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.2);
+    color: #dc3545;
+  }
+
+  .success {
+    background-color: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.2);
+    color: #28a745;
   }
 
   .form-group {
