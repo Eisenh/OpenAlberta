@@ -33,6 +33,7 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
           VITE_PGVECTOR_DIMS: ${{ secrets.VITE_PGVECTOR_DIMS }}
+          VITE_GITHUB_PAGES: '/OpenAlberta'
           # If you need VITE_SUPABASE_DB_URL, add it here
 
       - name: Deploy to GitHub Pages

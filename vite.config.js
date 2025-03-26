@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
     : {};
 
   return {
-    base: '/OpenAlberta',
+    base: '/OpenAlberta/',
     publicDir: 'public',
     define: {
       // This ensures environment variables are properly replaced during build

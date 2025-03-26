@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 
 export const currentRoute = writable('/');
 
-const base = "/OpenAlberta"; // Base path for GitHub Pages
+const base = import.meta.env.VITE_GITHUB_PAGES || ''; // Base path for GitHub Pages
 
 export function navigate(path) {
     const fullPath = `#${path}`;
@@ -45,19 +45,19 @@ if (typeof window !== 'undefined') {
                 // Route based on the auth type
                 switch (authType) {
                     case 'recovery':
-                        redirectRoute = '/#/reset-password';
+                        redirectRoute = '#/reset-password';
                         break;
                     case 'email':
-                        redirectRoute = '/#/verify-email';
+                        redirectRoute = '#/verify-email';
                         break;
                     case 'signup':
-                        redirectRoute = '/#/verify-email';
+                        redirectRoute = '#/verify-email';
                         break;
                     case 'magiclink':
-                        redirectRoute = '/#/login';
+                        redirectRoute = '#/login';
                         break;
                     default:
-                        redirectRoute = '/';
+                        redirectRoute = '#/';
                 }
             }
             
