@@ -20,6 +20,10 @@
   //let baseSize = 5;  // Base node size
   let minScaleFactor = 0.1;
   let maxScaleFactor = 1.2;
+  let tooltipHideTimeout = null;
+  let activeElementId = null;  // Tracks the ID of the element (node or edge) currently being hovered
+  let activeElementType = null;  // 'node' or 'edge'
+  const tooltipHideDelay = 200; // ms before hiding tooltip
   // Debugging variables
   let graphStatus = "Initializing";
   let nodeCount = 0;
@@ -118,6 +122,52 @@
 
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   }
+
+  function showTooltip(node, originalEvent, HTML_Text) {
+    const tooltip = document.getElementById("graph-tooltip");
+    const containerRect = container.getBoundingClientRect();
+    console.log("Tooltip ", originalEvent);
+    // Calculate position relative to the container
+    const x = originalEvent.clientX - containerRect.left + 10;
+    const y = originalEvent.clientY - containerRect.top + 10;
+
+    setTimeout(() => {
+      // Format similarity with 2 decimal places if available
+      //const simText = similarity ? similarity.toFixed(2) + " - " : "";
+      tooltip.innerHTML = HTML_Text;
+      tooltip.style.display = "block";
+      tooltip.style.left = `${x}px`;
+      tooltip.style.top = `${y}px`;
+      
+    }, 50);
+  }
+
+  function handleElementMouseOut(event) {
+    const element = event.target;
+    
+    // If it's a node, remove the hover class
+    if (element.isNode()) {
+      element.removeClass('hover');
+    }
+    
+    // If this is the active element being tracked, clear the tracking
+    if (element.id() === activeElementId) {
+      activeElementId = null;
+      activeElementType = null;
+    }
+    
+    // Set a timeout to hide the tooltip after a delay
+    if (tooltipHideTimeout) {
+      clearTimeout(tooltipHideTimeout);
+    }
+    
+    tooltipHideTimeout = setTimeout(() => {
+      // Only hide if we're not currently over another element
+      if (!activeElementId) {
+        document.getElementById("graph-tooltip").style.display = "none";
+      }
+    }, tooltipHideDelay);
+  }
   // Initialize Cytoscape
   function initGraph() {
     if (!container) {
@@ -209,63 +259,85 @@
       }
     ]);
     //updateElementStyles(cy);
-    // Handle hover event to show tooltip
-    cy.on("mouseover", "node", (event) => {
-      const node = event.target;
-      node.addClass('hover');
-      const similarity = node.data('similarity') || 0;
+ 
+
+  // Handle hover event to show tooltip
+  cy.on("mouseover", "node", (event) => {
+    const node = event.target;
+    node.addClass('hover');
+    const similarity = node.data('similarity') || 0;
       
-      const tooltip = document.getElementById("graph-tooltip-expanded");
-      const containerRect = container.getBoundingClientRect();
-
-      // Calculate position relative to the container
-      const x = event.originalEvent.clientX - containerRect.left + 10;
-      const y = event.originalEvent.clientY - containerRect.top + 10;
-
-      setTimeout(() => {
-        // Format similarity with 2 decimal places if available
-        //const simText = similarity ? similarity.toFixed(2) + " - " : "";
-        tooltip.innerHTML = "<b>" +  node.data('label') + "</b> <p>" +(node.data('description') ) + "</p>";
-        tooltip.style.display = "block";
-        tooltip.style.left = `${x}px`;
-        tooltip.style.top = `${y}px`;
-      }, 50);
-    });
+    // Update tracking variables
+    activeElementId = node.id();
+    activeElementType = 'node';
+    
+    // Clear any existing hide timeout
+    if (tooltipHideTimeout) {
+      clearTimeout(tooltipHideTimeout);
+      tooltipHideTimeout = null;
+    }
+    // Show tooltip
+    const showText = "<b>" +  node.data('label') + "</b> <p>" +(node.data('description') ) + "</p>";
+    showTooltip(node, event.originalEvent, showText);
+    
+  });
 
     cy.on("mouseover", "edge", (event) => {
       const edge = event.target;
       //node.addClass('hover-');
       const similarity = edge.data('weight') || 0;
-             
-      const tooltip = document.getElementById("graph-tooltip-expanded");
-      const containerRect = container.getBoundingClientRect();
-
-      // Calculate position relative to the container
-      const x = event.originalEvent.clientX - containerRect.left + 10;
-      const y = event.originalEvent.clientY - containerRect.top + 10;
-
-      setTimeout(() => {
-        // Format similarity with 2 decimal places if available
-        const simText = similarity ? similarity.toFixed(2) : "unknown";
-        tooltip.innerHTML = "Similarity: " + simText ;//+ (edge.data('description') || node.data('label'));
-        tooltip.style.display = "block";
-        tooltip.style.left = `${x}px`;
-        tooltip.style.top = `${y}px`;
-      }, 50);
+      console.log("mouseover edge ", event, " similarity ", similarity);
+       // Update tracking variables
+      activeElementId = edge.id();
+      activeElementType = 'edge';   
+       
+      // Clear any existing hide timeout
+      if (tooltipHideTimeout) {
+        clearTimeout(tooltipHideTimeout);
+        tooltipHideTimeout = null;
+      }
+      
+      // Show tooltip
+      
+      const simText = "Similarity: " + (similarity ? similarity.toFixed(2) : "unknown");
+      showTooltip(edge, event.originalEvent, simText);
+        
     });
    
-    // Hide tooltip on mouseout
+      
+    // Apply the common handler to both nodes and edges
+    cy.on("mouseout", "node", handleElementMouseOut);
+    cy.on("mouseout", "edge", handleElementMouseOut);
+/*
+    // Hide tooltip on mouseout - keep this as a backup but don't rely on it
     cy.on("mouseout", "node", (event) => {
       const node = event.target;
       node.removeClass('hover');
-      document.getElementById("graph-tooltip-expanded").style.display = "none";
+
+      
+      if (node.id() === mouseOverNodeId) {
+        mouseOverNodeId = null;
+      }
+
+      // Set a timeout to hide the tooltip after a delay
+      // This makes it less sensitive to actually capturing a mouse off event
+      if (tooltipHideTimeout) {
+        clearTimeout(tooltipHideTimeout);
+      }
+      
+      tooltipHideTimeout = setTimeout(() => {
+        // Only hide if we're not currently over another node
+        if (!mouseOverNodeId) {
+          document.getElementById("graph-tooltip").style.display = "none";
+        }
+      }, tooltipHideDelay);
     });
 
     cy.on("mouseout", "edge", (event) => {
       const node = event.target;
-      document.getElementById("graph-tooltip-expanded").style.display = "none";
-    });
 
+    });
+*/
     cy.on("tap", "node", (event) => {
       // Check if it is a double-click
       const currentTime = Date.now();
@@ -629,7 +701,7 @@
 <div bind:this={container} class="graph-wrapper"></div>
 
 <!-- Tooltip for hover event -->
-<div id="graph-tooltip-expanded" class="graph-tooltip"></div>
+<div id="graph-tooltip" class="graph-tooltip"></div>
 
 <!-- Debug Overlay -->
 {#if import.meta.env.DEV}

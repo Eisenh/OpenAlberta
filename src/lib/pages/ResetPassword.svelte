@@ -16,11 +16,15 @@
 
   onMount(() => {
     // Check if we have an access token in the URL (for password reset)
-    // The hash format will be like #/reset-password#access_token=xxx&type=recovery
+    // Supabase actually formats the URL like #access_token=xxx&type=recovery
+    // Not like #/reset-password#access_token=xxx&type=recovery
+    console.log("Current hash:", window.location.hash);
+    
     const hash = window.location.hash;
     const tokenMatch = hash.match(/access_token=([^&]+)/);
 
     if (tokenMatch && tokenMatch[1]) {
+      console.log("Found access token in URL");
       accessToken = tokenMatch[1];
       view = 'reset';
       
@@ -28,6 +32,8 @@
       // This prevents token leakage and accidental reuse
       const newHash = '#/reset-password';
       window.history.replaceState(null, '', newHash);
+    } else {
+      console.log("No access token found in URL");
     }
   });
 
@@ -37,8 +43,15 @@
     successMessage = '';
 
     try {
+      // Use the base path from vite.config.js
+      const basePath = '/OpenAlberta'; 
+      
+      // Make sure the redirectTo URL includes the base path
+      const fullRedirectUrl = `${window.location.origin}${basePath}/#/reset-password`;
+      console.log("Reset password redirect URL:", fullRedirectUrl);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/#/reset-password`,
+        redirectTo: fullRedirectUrl,
       });
 
       if (error) {

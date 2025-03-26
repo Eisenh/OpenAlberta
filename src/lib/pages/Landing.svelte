@@ -481,7 +481,7 @@
           }
           
           const { error: matchError, data: response } = await supabase.rpc(
-            'match_vectors',
+            'match_vectors_meta',
             {
               query_embedding: queryVector,
               match_threshold: similarityThreshold,
@@ -501,19 +501,19 @@
 
           // Check the type of first embedding to diagnose the issue
           if (response.length > 0) {
-//            console.log("First embedding type:", typeof response[0].notes_embedding);
-//            console.log("Is array?", Array.isArray(response[0].notes_embedding));
-//            console.log("First few values:", Array.isArray(response[0].notes_embedding) ? response[0].notes_embedding.slice(0, 5) : "Not an array");
+//            console.log("First embedding type:", typeof response[0].embedding);
+//            console.log("Is array?", Array.isArray(response[0].embedding));
+//            console.log("First few values:", Array.isArray(response[0].embedding) ? response[0].embedding.slice(0, 5) : "Not an array");
               
             // If it's a string, try to parse it
-            if (typeof response[0].notes_embedding === 'string') {
+            if (typeof response[0].embedding === 'string') {
               console.log("Embedding appears to be stored as a string, attempting to parse");
             }
           }
           
           const results = response.map((item) => {
             // Process embedding - ensure it's an array
-            let embedding = item.notes_embedding;
+            let embedding = item.embedding;
             
             // If it's a string, try to parse it as JSON
             if (typeof embedding === 'string') {
@@ -663,7 +663,7 @@
     try {
       // Use the embedding directly for search
       const { error: matchError, data: response } = await supabase.rpc(
-        'match_vectors',
+        'match_vectors_meta',
         {
           query_embedding: result.embedding,
           match_threshold: similarityThreshold,
@@ -684,7 +684,7 @@
       // Process results similar to searchVectors function
       results = response.map((item) => {
         // Process embedding - ensure it's an array
-        let embedding = item.notes_embedding;
+        let embedding = item.embedding;
         
         // If it's a string, try to parse it as JSON
         if (typeof embedding === 'string') {

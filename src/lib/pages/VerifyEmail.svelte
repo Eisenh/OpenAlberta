@@ -60,11 +60,14 @@
     successMessage = '';
 
     try {
+      // Use the base path from vite.config.js
+      const basePath = '/OpenAlberta';
+      
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: email,
         options: {
-          redirectTo: `${window.location.origin}/#/verify-email`,
+          redirectTo: `${window.location.origin}${basePath}/#/verify-email`,
         }
       });
 
