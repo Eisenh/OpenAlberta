@@ -15,7 +15,10 @@
     try {
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: email
+        email: email,
+        options: {
+          redirectTo: `${window.location.origin}/#/verify-email`,
+        }
       });
 
       if (error) {
@@ -47,6 +50,9 @@
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/#/verify-email`
+        }
       });
 
       if (error) {
@@ -87,28 +93,26 @@
       </div>
     {/if}
 
-    {#if successMessage}
-      <div class="message success">
-        <p>{successMessage}</p>
-        {#if data?.user?.identities?.length === 0}
-          <div class="resend-container">
-            <p>Didn't receive the confirmation email?</p>
-            <button 
-              on:click|preventDefault={handleResendConfirmation}
-              class="auth-button secondary"
-              disabled={loading}
-            >
-              {#if loading}
-                <span class="loading-spinner"></span>
-                Sending...
-              {:else}
-                Resend Confirmation Email
-              {/if}
-            </button>
+        {#if successMessage}
+          <div class="message success">
+            <p>{successMessage}</p>
+            <div class="resend-container">
+              <p>Didn't receive the confirmation email?</p>
+              <button 
+                on:click|preventDefault={handleResendConfirmation}
+                class="auth-button secondary"
+                disabled={loading}
+              >
+                {#if loading}
+                  <span class="loading-spinner"></span>
+                  Sending...
+                {:else}
+                  Resend Confirmation Email
+                {/if}
+              </button>
+            </div>
           </div>
         {/if}
-      </div>
-    {/if}
 
     <form on:submit|preventDefault={handleSignUp} class="auth-form">
       <div class="form-group">

@@ -75,7 +75,7 @@
     </button>
     {#if sectionsExpanded.searchFunctionality}
       <div class="section-content" id="searchFunctionality-content">
-        <h3>Basic Search</h3>
+        <h3>Basic Text Search</h3>
         <p>
           To search for datasets, enter your query in the search box at the top of the page and press Enter 
           or click the search icon. Results will be displayed in both graph and list formats (below the graph).
@@ -83,7 +83,9 @@
         
         <h3>Understanding Results</h3>
         <p>
-          Results are ranked by relevance to your query, with the most semantically similar datasets appearing first. 
+          Results are sorted by relevance to your query, with the most semantically similar datasets 
+          having thicker links and larger nodes in the graph view. 
+        
           Each result includes:
         </p>
         <ul>
@@ -98,16 +100,27 @@
           The interactive graph visualization shows relationships between your query and the results:
         </p>
         <ul>
+          <li><strong>The query itself </strong> appears in orange near the center</li>
           <li><strong>Hover your mouse pointer</strong> over a node to see the dataset's description in a tooltip, or over a link to see the calculated similarity</li>
           <li><strong>Click on a node</strong> to view details about that dataset in the left panel</li>
           <li><strong>Double-click on a node</strong> to use that dataset as the basis of a new search</li>
           <li>Switch between different <strong>View Modes</strong> to see different visualizations of the data</li>
-          <li>Use the <strong>Similarity Threshold</strong> slider to limit results by relevance</li>
-          <li>Use the <strong>Display Threshold</strong> slider to hide low-similarity links</li>
           <li>In <strong>Similarity Network </strong> view, the similarity between results is displayed. 
             Results are clustered into 1 or more mutually similar groups by color.</li>
         </ul>
-        
+
+        <h3>Tips for efficient searching</h3>
+        <ul>
+          <li><strong>Use natural language</strong> - Instead of just keywords, try asking a question or describing the data you need</li>
+          <li><strong>Be specific</strong> - Longer and more detailed queries are likely to yield better results. A paragraph is not unreasonable 
+            if searching subject areas with many similar datasets</li>
+          <li><strong>Explore related datasets</strong> - Double-click on interesting results to pivot your search in that direction.</li>
+          <li>Adjust the <strong>Similarity Threshold</strong> slider before repeating a search to limit or expand results by relevance</li>
+          <li>Use the <strong>visual clues</strong> such as node sizes and cluster colors to understand the results. Adjust the Display threshold
+             to focus on the most significant relationships in the network view</li>
+          <li><strong>Check your search history</strong> - Review and refine your previous searches</li>
+        </ul>
+
         <h3>Search History</h3>
         <p>
           Your recent searches are saved locally and can be accessed by clicking in the search box. 
@@ -275,32 +288,6 @@
           <li>Embeddings are stored in the Supabase database using pgvector</li>
           <li>Vector similarity search is performed using cosine similarity</li>
         </ol>
-      </div>
-    {/if}
-  </section>
-  
-  <section>
-    <button 
-      class="section-header" 
-      on:click={() => toggleSection('tips')}
-      on:keydown={(e) => handleKeyDown(e, 'tips')}
-      aria-expanded={sectionsExpanded.tips}
-      aria-controls="tips-content"
-      type="button"
-    >
-      <h2>6. Tips for Effective Searching</h2>
-      <span class="toggle-icon">{sectionsExpanded.tips ? '−' : '+'}</span>
-    </button>
-    {#if sectionsExpanded.tips}
-      <div class="section-content" id="tips-content">
-        <ul>
-          <li><strong>Use natural language</strong> - Instead of just keywords, try asking a question or describing the data you need</li>
-          <li><strong>Be specific</strong> - More detailed queries often yield better results</li>
-          <li><strong>Explore related datasets</strong> - Double-click on interesting results to pivot your search</li>
-          <li><strong>Adjust the similarity threshold</strong> - Lower it to see more diverse results, raise it for higher precision</li>
-          <li><strong>Try different view modes</strong> - Each visualization can reveal different relationships in the data</li>
-          <li><strong>Check your search history</strong> - Review and refine your previous searches</li>
-        </ul>
       </div>
     {/if}
   </section>

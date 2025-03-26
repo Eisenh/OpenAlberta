@@ -63,7 +63,7 @@
       <div class="form-group">
         <div class="password-header">
           <label for="password">Password</label>
-          <a href="#/reset-password" class="forgot-password" on:click|preventDefault={() => alert('Password reset functionality not implemented yet.')}>
+          <a href="#/reset-password" class="forgot-password" on:click|preventDefault={() => navigate('/reset-password')}>
             Forgot password?
           </a>
         </div>
