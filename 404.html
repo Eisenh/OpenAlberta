@@ -28,16 +28,29 @@
 
       function getParameterByName(name, url) {
         name = name.replace(/[\[\]]/g, '\\$&');
-        // Add word boundaries to prevent partial matches
-        const regex = new RegExp('[&?]\\b' + name + '\\b(=([^&#]*)|&|#|$)'),
-          results = regex.exec(url);
-        if (!results) return null;
-        if (!results[2]) return '';
-        return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        // Modify the regex to specifically look for '&' before the name
+        const regex = new RegExp('[&?]\\b' + name + '\\b(=([^&#]*)|&|#|$)');
+        const results = regex.exec(url);
+
+        if (!results) {
+          return null;
+        }
+
+        if (!results[2]) {
+          return '';
+        }
+
+        const parsed = decodeURIComponent(results[2].replace(/\+/g, ' '));
+        console.log("404 parsed ", parsed);
+        return parsed;
+      }
+
+      function getAmpersandTypeParameter(url) {
+        return getParameterByName('&type', url);
       }
       
       const fragment = window.location.hash.substring(1);
-      const type = getParameterByName('type', fragment);
+      const type = getAmpersandTypeParameter('type', fragment);
       console.log("404, type = ", type, " Fragment: ", fragment);
 
 
@@ -96,8 +109,10 @@
         (location.search ? '&q=' + location.search.slice(1).replace(/&/g, '~and~') : '') +
         (location.hash || '');
 
-          Console.log("404 normal redirectUrl", redirectUrl)
-      window.location.replace(redirectUrl);
+          console.log("404 normal redirectUrl", redirectUrl);
+      // Use replaceState instead of redirect to maintain URL structure
+      window.history.replaceState(null, null, redirectUrl);
+      window.location.reload();
     }
   </script>
 </head>
