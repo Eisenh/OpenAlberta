@@ -5,17 +5,37 @@ export const currentRoute = writable('/');
 const base = import.meta.env.VITE_GITHUB_PAGES || ''; // Base path for GitHub Pages
 
 export function navigate(path) {
-    const fullPath = `#${path}`;
-    currentRoute.set(path);
+    // Ensure path starts with '/' and handle hash-based routing
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const fullPath = `${window.location.pathname}#${normalizedPath}`;
+    currentRoute.set(normalizedPath);
     history.pushState(null, '', fullPath);
 }
+export function getParameterByName(name, url) {
+        name = name.replace(/[\[\]]/g, '\\$&');
+        // Modify the regex to specifically look for '&' before the name
+        const regex = new RegExp('[&?]\\b' + name + '\\b(=([^&#]*)|&|#|$)');
+        const results = regex.exec(url);
 
+        if (!results) {
+          return null;
+        }
+
+        if (!results[2]) {
+          return '';
+        }
+
+        const parsed = decodeURIComponent(results[2].replace(/\+/g, ' '));
+        return parsed;
+          
+      }
 // Handle browser back/forward navigation
 if (typeof window !== 'undefined') {
     window.addEventListener('popstate', () => {
-        // Handle hash-based routing for GitHub Pages
+        // Handle hash changes for GitHub Pages
         const hashPath = window.location.hash.substring(1) || '/';
-        currentRoute.set(hashPath);
+        const cleanPath = hashPath.split('?')[0]; // Remove query params
+        currentRoute.set(cleanPath);
     });
 
     // Initial route setup
@@ -24,11 +44,11 @@ if (typeof window !== 'undefined') {
         console.log("rjs Current URL:", window.location.href);
         
         // Check for Supabase auth tokens
-        const hash = window.location.hash;
-        console.log("rjs Current hash:", hash);
+        const initialHash = window.location.hash;
+        console.log("rjs Current hash:", initialHash);
 
         // Handle GitHub Pages redirection when an access token is present but we're at root domain
-        if (hash.includes('access_token=') && 
+        if (initialHash.includes('access_token=') && 
             window.location.hostname.includes('github.io') && 
             !window.location.pathname.includes(base)) {
             
@@ -36,7 +56,7 @@ if (typeof window !== 'undefined') {
             
             // Determine the correct route based on the type parameter
             let redirectRoute = '/';
-            const typeMatch = hash.match(/type=([^&]+)/);
+            const typeMatch = initialHash.match(/type=([^&]+)/);
             
             if (typeMatch && typeMatch[1]) {
                 const authType = typeMatch[1];
@@ -62,46 +82,15 @@ if (typeof window !== 'undefined') {
             }
             
             // Redirect to the appropriate page with the token
-            const redirectUrl = `${window.location.origin}${base}${redirectRoute}${hash}`;
+            const redirectUrl = `${window.location.origin}${base}${redirectRoute}${initialHash}`;
             console.log("Redirecting to:", redirectUrl);
             window.location.href = redirectUrl;
             return;
         }
         
-        // Handle auth tokens when already on the correct domain path
-        if (hash.includes('access_token=')) {
-            console.log("Found access token in hash");
-            
-            // Determine where to navigate based on the auth type
-            const typeMatch = hash.match(/type=([^&]+)/);
-            if (typeMatch && typeMatch[1]) {
-                const authType = typeMatch[1];
-                console.log("Auth type:", authType);
-                
-                // Navigate based on the auth type
-                switch (authType) {
-                    case 'recovery':
-                        navigate('/reset-password');
-                        break;
-                    case 'email':
-                    case 'signup':
-                        navigate('/verify-email');
-                        break;
-                    case 'magiclink':
-                        navigate('/login');
-                        break;
-                    default:
-                        navigate('/');
-                }
-            } else {
-                // Default to home page if no type is specified
-                navigate('/');
-            }
-        } 
-        // Normal route handling
-        else if (window.location.pathname.startsWith(base)) {
-            const initialRoute = window.location.pathname.substring(base.length) || '/';
-            navigate(initialRoute);
-        }
+        // Initial hash-based route handling
+        const hash = window.location.hash.substring(1) || '/';
+        const cleanHash = hash.split('?')[0]; // Remove query params
+        navigate(cleanHash);
     });
 }

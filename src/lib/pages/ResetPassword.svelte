@@ -2,7 +2,7 @@
   // @ts-nocheck - Svelte 5 TypeScript definition issues
   import { onMount } from 'svelte';
   import { supabase } from '../supabaseClient.js';
-  import { navigate } from '../stores/route.js';
+  import { navigate, getParameterByName } from '../stores/route.js';
 
   // State variables
   let email = '';
@@ -16,23 +16,26 @@
 
   onMount(() => {
     // Check if we have an access token in the URL (for password reset)
-    // Supabase actually formats the URL like #access_token=xxx&type=recovery
-    // Not like #/reset-password#access_token=xxx&type=recovery
     console.log("Current hash:", window.location.hash);
+    const initialHash = window.location.hash.substring(1);
+    const hashParams = new URLSearchParams(initialHash);
+    accessToken = hashParams.get('access_token');
+     // Use getParameterByName for type to handle the &type= format correctly
+    const authType = getParameterByName('&type', initialHash);
+    const authTypeOld = hashParams.get('&type');
     
-    const hash = window.location.hash;
-    const tokenMatch = hash.match(/access_token=([^&]+)/);
+    console.log("Reset page hashParams: ", hashParams," authType: ", authType, " AuthTypeOld: ", authTypeOld);
 
-    if (tokenMatch && tokenMatch[1]) {
-      console.log("Found access token in URL");
-      accessToken = tokenMatch[1];
+    if (accessToken && authType === 'recovery') {
+      console.log("Found password reset token in URL");
       view = 'reset';
       
-      // Clean up the URL by removing the access token
-      // This prevents token leakage and accidental reuse
-      const basePath = import.meta.env.VITE_GITHUB_PAGES || '';
-      const newHash = '#/reset-password';
-      window.history.replaceState(null, '', newHash);
+      // Clean up the URL by removing the auth params
+      window.history.replaceState(null, '', '#/reset-password');
+    } else if (accessToken) {
+      console.error("Invalid token type:", authType);
+      errorMessage = 'Invalid password reset link';
+      view = 'request';
     } else {
       console.log("No access token found in URL");
     }
@@ -82,20 +85,26 @@
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({
+      // First exchange the access token for a session
+      const { error: authError } = await supabase.auth.exchangeCodeForSession(accessToken);
+      
+      if (authError) throw authError;
+
+      // Then update the password
+      const { error: updateError } = await supabase.auth.updateUser({
         password: password
       });
 
-      if (error) {
-        errorMessage = error.message;
-      } else {
-        successMessage = 'Password updated successfully!';
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000); // Redirect after 2 seconds
-      }
+      if (updateError) throw updateError;
+
+      successMessage = 'Password updated successfully!';
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000); // Redirect after 2 seconds
     } catch (error) {
-      errorMessage = error.message;
+      errorMessage = error.message || 'Password reset failed. Please request a new link.';
+      console.error('Password reset error:', error);
+      view = 'request'; // Reset to request view on error
     } finally {
       loading = false;
     }
