@@ -12,7 +12,7 @@
     // main index.html file, allowing client-side routing to handle the path
 
     // Special handling for Supabase auth tokens (for any auth flow)
-    if (false) { //(window.location.hash && window.location.hash.includes('access_token=')) {
+    if (window.location.hash && window.location.hash.includes('access_token=')) {
       
       const hash = window.location.hash;
       console.log("404 Detected access token in URL hash ", window.location.hash);
