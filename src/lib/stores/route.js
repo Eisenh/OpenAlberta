@@ -2,6 +2,7 @@ import { writable } from 'svelte/store';
 
 export const currentRoute = writable('/');
 
+
 const base = import.meta.env.VITE_GITHUB_PAGES || ''; // Base path for GitHub Pages
 
 export function navigate(path) {
@@ -10,6 +11,7 @@ export function navigate(path) {
     const fullPath = `${window.location.pathname}#${normalizedPath}`;
     currentRoute.set(normalizedPath);
     history.pushState(null, '', fullPath);
+    console.log("rjs navigating path: ", path, " fullpath: ", fullPath," currentRoute: ", currentRoute);
 }
 export function getParameterByName(name, url) {
         name = name.replace(/[\[\]]/g, '\\$&');
@@ -24,11 +26,7 @@ export function getParameterByName(name, url) {
         if (!results[2]) {
           return '';
         }
-
-        const parsed = decodeURIComponent(results[2].replace(/\+/g, ' '));
-        return parsed;
-          
-      }
+    }
 // Handle browser back/forward navigation
 if (typeof window !== 'undefined') {
     window.addEventListener('popstate', () => {
@@ -44,53 +42,74 @@ if (typeof window !== 'undefined') {
         console.log("rjs Current URL:", window.location.href);
         
         // Check for Supabase auth tokens
-        const initialHash = window.location.hash;
-        console.log("rjs Current hash:", initialHash);
+        const initialHash = window.location.hash.substring(1);
+        console.log("rjs initialHash: ", initialHash);
+        if (initialHash) {
+            // 1. Find the position of the '?' within the hash
+            const questionMarkIndex = initialHash.indexOf('?');
 
-        // Handle GitHub Pages redirection when an access token is present but we're at root domain
-        if (initialHash.includes('access_token=') && 
-            window.location.hostname.includes('github.io') && 
-            !window.location.pathname.includes(base)) {
-            
-            console.log("rjs Detected access token at root domain, redirecting to correct path");
-            
-            // Determine the correct route based on the type parameter
-            let redirectRoute = '/';
-            const typeMatch = initialHash.match(/type=([^&]+)/);
-            
-            if (typeMatch && typeMatch[1]) {
-                const authType = typeMatch[1];
-                console.log("rjs Auth type:", authType);
-                
-                // Route based on the auth type
-                switch (authType) {
-                    case 'recovery':
-                        redirectRoute = '#/reset-password';
-                        break;
-                    case 'email':
-                        redirectRoute = '#/verify-email';
-                        break;
-                    case 'signup':
-                        redirectRoute = '#/verify-email';
-                        break;
-                    case 'magiclink':
-                        redirectRoute = '#/login';
-                        break;
-                    default:
-                        redirectRoute = '#/';
+            if (questionMarkIndex !== -1) {
+                // 2. Extract the query parameter string
+                const queryString = initialHash.substring(questionMarkIndex + 1);
+
+                // 3. Parse the query parameters using URLSearchParams
+                const params = new URLSearchParams(queryString);
+
+                // 4. Access the parameter values
+                const tokenType = params.get('token_type');
+                const authType = params.get('type');
+                const accessToken = params.get('access_token');
+
+                console.log("rjs Params: ", accessToken);
+                console.log('rjs token_type:', tokenType);
+                console.log('rjs authType:', authType);
+
+        // Do something with the parameters...
+                if (accessToken) {
+                    
+                    console.log("rjs Detected access token");
+                  
+                    // Determine the correct route based on the type parameter
+                    let redirectRoute = '/';  
+                    // Route based on the auth type
+                    switch (authType) {
+                        case 'recovery':
+                            console.log("rjs setting currentRoute: ", initialHash);
+                            currentRoute.set(initialHash);//'/reset-password';
+
+                            break;
+                        case 'email':
+                            redirectRoute = '/verify-email';
+                            break;
+                        case 'signup':
+                            redirectRoute = '/verify-email';
+                            break;
+                        case 'magiclink':
+                            redirectRoute = '/login';
+                            break;
+                        default:
+                            redirectRoute = '/';
+                    }
+                    // Redirect to the appropriate page with the token
+                    //const redirectUrl = `${window.location.origin}${base}${redirectRoute}${initialHash}`;
+                    //console.log("Redirecting to:", redirectRoute);
+                    //window.location.href = redirectUrl;
+                    //navigate(redirectRoute);
+                    return;
                 }
+                
+            } else {
+                console.log('No query parameters found in the hash.');
+                // Initial hash-based route handling
+                const hash = window.location.hash.substring(1) || '/';
+                const cleanHash = hash.split('?')[0]; // Remove query params
+                console.log("cleanHash: ", cleanHash);
+                navigate(hash); //cleanHash);
             }
-            
-            // Redirect to the appropriate page with the token
-            const redirectUrl = `${window.location.origin}${base}${redirectRoute}${initialHash}`;
-            console.log("Redirecting to:", redirectUrl);
-            window.location.href = redirectUrl;
-            return;
+        } else {
+            console.log('No hash found.');
         }
+        // Handle GitHub Pages redirection when an access token is present but we're at root domain
         
-        // Initial hash-based route handling
-        const hash = window.location.hash.substring(1) || '/';
-        const cleanHash = hash.split('?')[0]; // Remove query params
-        navigate(cleanHash);
     });
 }

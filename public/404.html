@@ -12,10 +12,11 @@
     // main index.html file, allowing client-side routing to handle the path
 
     // Special handling for Supabase auth tokens (for any auth flow)
-    if (window.location.hash && window.location.hash.includes('access_token=')) {
-      console.log("Detected access token in URL hash");
-
+    if (false) { //(window.location.hash && window.location.hash.includes('access_token=')) {
+      
       const hash = window.location.hash;
+      console.log("404 Detected access token in URL hash ", window.location.hash);
+
       const projectPath = import.meta.env.VITE_GITHUB_PAGES || '';  // GitHub Pages repository name
 
       // Parse the hash parameters using proper URL parameter extraction

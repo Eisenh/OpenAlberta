@@ -15,30 +15,50 @@
   let accessToken = null;
 
   onMount(() => {
-    // Check if we have an access token in the URL (for password reset)
-    console.log("Current hash:", window.location.hash);
-    const initialHash = window.location.hash.substring(1);
-    const hashParams = new URLSearchParams(initialHash);
-    accessToken = hashParams.get('access_token');
-     // Use getParameterByName for type to handle the &type= format correctly
-    const authType = getParameterByName('&type', initialHash);
-    const authTypeOld = hashParams.get('&type');
+    // Check if we have an access token in the URL (for password reset)// Check for Supabase auth tokens
+    const initialHash = window.location.hash;
+    console.log("ResetPW initialHash: ", initialHash);
     
-    console.log("Reset page hashParams: ", hashParams," authType: ", authType, " AuthTypeOld: ", authTypeOld);
+        // 1. Find the position of the '?' within the hash
+    const questionMarkIndex = initialHash.indexOf('?');
 
-    if (accessToken && authType === 'recovery') {
-      console.log("Found password reset token in URL");
-      view = 'reset';
+    if (questionMarkIndex !== -1) {
+      // 2. Extract the query parameter string
+      const queryString = initialHash.substring(questionMarkIndex + 1);
+
+      // 3. Parse the query parameters using URLSearchParams
+      const params = new URLSearchParams(queryString);
+
+      // 4. Access the parameter values
+      const tokenType = params.get('token_type');
+      const authType = params.get('type');
+      const accessToken = params.get('access_token');
+
+      console.log("Params: ", accessToken);
+      console.log('token_type:', tokenType);
+      console.log('authType:', authType);
+
+      // Do something with the parameters...
       
-      // Clean up the URL by removing the auth params
-      window.history.replaceState(null, '', '#/reset-password');
-    } else if (accessToken) {
-      console.error("Invalid token type:", authType);
-      errorMessage = 'Invalid password reset link';
-      view = 'request';
+      if (accessToken && authType === 'recovery') {
+        console.log("Found password reset token in URL");
+        view = 'reset';
+        
+        // Clean up the URL by removing the auth params
+        window.history.replaceState(null, '', '#/reset-password');
+      } else if (accessToken) {
+        console.error("Invalid token type:", authType);
+        errorMessage = 'Invalid password reset link';
+        view = 'request';
+      } else {
+        console.log("No access token found in URL");
+      }
+      
+        
     } else {
-      console.log("No access token found in URL");
+        console.log('No query parameters found in the hash.');
     }
+ 
   });
 
   async function handleRequestReset() {

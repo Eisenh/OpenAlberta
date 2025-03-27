@@ -47,14 +47,16 @@
     const zoom = Math.max(0.00001, graph.zoom() || 0.00001);
     const scaleFactor = 2 / zoom;
     const fontsize = 12 * scaleFactor + "px";
-    
     // Update nodes
     graph.nodes().forEach(node => {
-      let newSize = 30* node.data('similarity') * scaleFactor;
-      node.style({
+      const sim = node.data('similarity');
+      const newSize = 30* Math.max(sim, 0.1) * scaleFactor;
+      const opacity = Math.max(1, sim)
+       node.style({
           'width': newSize,
           'height': newSize,
           'font-size': fontsize,
+          'opacity': sim
       });
     });
     
@@ -256,32 +258,34 @@
         // Add new elements
         // Add nodes with initial positions based on similarity
         const elements = data.nodes.map((node, index) => {
-        // Calculate radius inversely proportional to similarity
-        const minDistance = 5;  // Minimum distance from center
-        const maxDistance = 300; // Maximum distance from center
-        let norm = 0;
-        // Use similarity to determine radius - higher similarity means closer to center
-        // Default to maxDistance if similarity is missing or too low
-        const similarity = node.similarity || 0.3;
-        if (simMax === simMin) {
-          norm = 1; 
-        } else norm = (similarity - simMin + 0.1) / (simMax - simMin + 0.1); 
-          //0-1
-        
-        if (index === 0) { //(node.id === 'query') {
-          node.distance = 0;// * (simMax - similarity)/(simMax - simMin) ;
-          node.diameter = 20;
-          return {
-            data: { ...node },
-            position: { x: 0, y: 0 }
-          };
-        }
-        node.distance = minDistance + minDistance / (norm * norm);// * (simMax - similarity)/(simMax - simMin) ;
-        node.diameter = Math.max(10 + 20 * norm, 20);
-        //console.log("distance ",index, " " , node.distance, "  similarity ",similarity, " norm ", norm)
-        
-        // Place nodes in a circle with radius based on similarity
-        const angle = (2 * Math.PI * index) / (node.distance - 1);
+          // Calculate radius inversely proportional to similarity
+          const minDistance = 1;  // Minimum distance from center
+          const maxDistance = 100; // Maximum distance from center
+          let normSim = 0;
+          // Use similarity to determine radius - higher similarity means closer to center
+          // Default to maxDistance if similarity is missing or too low
+          const similarity = node.similarity || 0.3;
+          if (simMax === simMin) {
+            normSim = 1; 
+          } else normSim = Math.max(0.001,(similarity - simMin + 0.001) / (simMax - simMin + 0.001)); 
+            //0-1
+          
+          if (index === 0) { //(node.id === 'query') {
+            
+            node.distance = 0;// * (simMax - similarity)/(simMax - simMin) ;
+            node.diameter = 20;
+            return {
+              data: { ...node },
+              position: { x: 0, y: 0 }
+            };
+          }
+          
+          node.distance = minDistance + 100* minDistance / ( normSim + 5* similarity );// * (simMax - similarity)/(simMax - simMin) ;
+          node.diameter = 10 + 100 * normSim;
+          console.log(index, "distance ", node.distance, "  similarity ",similarity, " normSim ", normSim)
+          
+          // Place nodes in a circle with radius based on similarity
+          const angle = (2 * Math.PI * index) / (50);
           return {
             data: { ...node },
             position: {
