@@ -3,7 +3,7 @@ import { writable } from 'svelte/store';
 export const currentRoute = writable('/');
 
 
-const base = import.meta.env.VITE_GITHUB_PAGES || ''; // Base path for GitHub Pages
+const projectPath = import.meta.env.VITE_GITHUB_PAGES || ''; // Base path for GitHub Pages
 
 export function navigate(path) {
     // Ensure path starts with '/' and handle hash-based routing
@@ -40,35 +40,39 @@ if (typeof window !== 'undefined') {
     window.addEventListener('load', () => {
         console.log("rjs Window load event - initializing routes");
         console.log("rjs Current URL:", window.location.href);
-        
         // Check for Supabase auth tokens
-        let initialHash = window.location.hash.substring(1); // remove leading #
-        console.log("rjs initialHash: ", initialHash);
-        if (initialHash) {
-            const hashIndex = initialHash.indexOf('#');
-            if (hashIndex > 2) initialHash = initialHash.replace('#','?');
-            console.log("rjs hashIndex: ", hashIndex, " initialHash w ?: ", initialHash);
-            // 1. Find the position of the '?' within the hash
-            const questionMarkIndex = initialHash.indexOf('?');
+        if (window.location.hash && window.location.hash.includes('access_token=')) {
+            let initialHash = window.location.hash.substring(1); // remove leading #
+            let hashQuery = initialHash.replace('#','?');
+            console.log("rjs initialHash: ", initialHash, " cleanHash: ",hashQuery);
+            let fullPath=  projectPath + '#' + hashQuery;
+            window.location.replace(fullPath);
+            /*
+            if (initialHash) {
+                const hashIndex = initialHash.indexOf('#');
+                if (hashIndex > 2) hashQuery = initialHash.replace('#','?');
+                console.log("rjs hashIndex: ", hashIndex, " initialHash w ?: ", initialHash);
+                // 1. Find the position of the '?' within the hash
+                const questionMarkIndex = hashQuery.indexOf('?');
 
-            if (questionMarkIndex !== -1 || hashIndex > 2 ) {
-                // 2. Extract the query parameter string
-                const queryString = initialHash.substring(questionMarkIndex + 1);
+                if (questionMarkIndex !== -1 || hashIndex > 2 ) {
+                    // 2. Extract the query parameter string
+                    const queryString = hashQuery.substring(questionMarkIndex + 1);
 
-                // 3. Parse the query parameters using URLSearchParams
-                const params = new URLSearchParams(queryString);
+                    // 3. Parse the query parameters using URLSearchParams
+                    const params = new URLSearchParams(queryString);
 
-                // 4. Access the parameter values
-                const tokenType = params.get('token_type');
-                const authType = params.get('type');
-                const accessToken = params.get('access_token');
+                    // 4. Access the parameter values
+                    const tokenType = params.get('token_type');
+                    const authType = params.get('type');
+                    const accessToken = params.get('access_token');
 
-                console.log("rjs Params: ", accessToken);
-                console.log('rjs token_type:', tokenType);
-                console.log('rjs authType:', authType);
+                    console.log("rjs Params: ", accessToken);
+                    console.log('rjs token_type:', tokenType);
+                    console.log('rjs authType:', authType);
 
-        // Do something with the parameters...
-                if (accessToken) {
+                    // Do something with the parameters...
+                      if (accessToken) {
                     
                     console.log("rjs Detected access token");
                   
@@ -100,7 +104,7 @@ if (typeof window !== 'undefined') {
                     //navigate(redirectRoute);
                     return;
                 }
-                
+                */
             } else {
                 console.log('No query parameters found in the hash.');
                 // Initial hash-based route handling
@@ -109,9 +113,6 @@ if (typeof window !== 'undefined') {
                 console.log("cleanHash: ", cleanHash);
                 navigate(hash); //cleanHash);
             }
-        } else {
-            console.log('No hash found.');
-        }
         // Handle GitHub Pages redirection when an access token is present but we're at root domain
         
     });
