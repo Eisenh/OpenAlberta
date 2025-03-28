@@ -42,13 +42,15 @@ if (typeof window !== 'undefined') {
         console.log("rjs Current URL:", window.location.href);
         
         // Check for Supabase auth tokens
-        const initialHash = window.location.hash.substring(1);
+        const initialHash = window.location.hash.substring(1); // remove leading #
         console.log("rjs initialHash: ", initialHash);
         if (initialHash) {
+            const hashIndex = initialHash.indexOf('#');
+            if (hashIndex > 2) initialHash.replace('#','?');
             // 1. Find the position of the '?' within the hash
             const questionMarkIndex = initialHash.indexOf('?');
 
-            if (questionMarkIndex !== -1) {
+            if (questionMarkIndex !== -1 || hashIndex > 2 ) {
                 // 2. Extract the query parameter string
                 const queryString = initialHash.substring(questionMarkIndex + 1);
 
