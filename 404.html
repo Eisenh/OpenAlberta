@@ -22,7 +22,7 @@
         if (hashIndex > 2) initialHash = initialHash.replace('#', '?');
         console.log("404 Detected hash at: ",hashIndex," in URL hash: ", initialHash);
         initialHash=  projectPath + '#' + initialHash;
-        window.location.replace('${initialHash}');
+        window.location.replace(initialHash);
       }
       
     
