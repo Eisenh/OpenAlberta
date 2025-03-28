@@ -12,25 +12,30 @@
     // main index.html file, allowing client-side routing to handle the path
 
     // Special handling for Supabase auth tokens (for any auth flow)
+    const projectPath = '/OpenAlberta/';
     if (window.location.hash && window.location.hash.includes('access_token=')) {
        // Check for Supabase auth tokens
-      const initialHash = window.location.hash.substring(1); // remove leading #
+      let initialHash = window.location.hash.substring(1); // remove leading #
       console.log("404 initialHash: ", initialHash);
       if (initialHash) {
         const hashIndex = initialHash.indexOf('#');
         if (hashIndex > 2) initialHash.replace('#', '?');
-      console.log("404 Detected access token in URL hash ", initialHash);
+        console.log("404 Detected hash at: ",hashIndex," in URL hash: ", initialHash);
+        initialHash=  projectPath + '#' + initialHash;
+        window.location.replace('${initialHash}');
+      }
+       /*
+        //const projectPath = import.meta.env.VITE_GITHUB_PAGES || '';  // GitHub Pages repository name
+        
+        // Parse the hash parameters using proper URL parameter extraction
+        // Fix: Use URLSearchParams to correctly extract the 'type' parameter (not token_type)
+        const hashParams = new URLSearchParams(initialHash);
+        const authType = hashParams.get('type');  // This properly gets the 'type' parameter only
 
-      const projectPath = import.meta.env.VITE_GITHUB_PAGES || '';  // GitHub Pages repository name
-
-      // Parse the hash parameters using proper URL parameter extraction
-      // Fix: Use URLSearchParams to correctly extract the 'type' parameter (not token_type)
-      const hashParams = new URLSearchParams(initialHash);
-      const authType = hashParams.get('type');  // This properly gets the 'type' parameter only
-
-      console.log("404 Auth type:", authType);
-      console.log("404 hashparams Auth type:", authType, "hashParams: ", hashParams);
-
+        console.log("404 Auth type:", authType);
+        console.log("404 hashparams Auth type:", authType, "hashParams: ", hashParams);
+      
+     
       function getParameterByName(name, url) {
         name = name.replace(/[\[\]]/g, '\\$&');
         // Modify the regex to specifically look for '&' before the name
@@ -53,11 +58,7 @@
       function getAmpersandTypeParameter(url) {
         return getParameterByName('&type', url);
       }
-      
-      const fragment = window.location.hash.substring(1);
-      const type = getAmpersandTypeParameter('type', fragment);
-      console.log("404, type = ", type, " Fragment: ", fragment);
-
+     
 
       // Determine the correct route based on the type parameter
       let redirectRoute = '#/';
@@ -81,7 +82,8 @@
             redirectRoute = '#/';
         }
       }
-      console.log("404 redirect top ", `${projectPath}${redirectRoute}${hash}`);
+      */
+      console.log("404 redirect top ", `${projectPath}${initialHash}`);
       // Redirect to the appropriate page with the token
       window.location.replace(`${projectPath}${redirectRoute}${hash}`);
     }
