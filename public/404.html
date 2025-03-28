@@ -19,11 +19,13 @@
       console.log("404 initialHash: ", initialHash);
       if (initialHash) {
         const hashIndex = initialHash.indexOf('#');
-        if (hashIndex > 2) initialHash.replace('#', '?');
+        if (hashIndex > 2) initialHash = initialHash.replace('#', '?');
         console.log("404 Detected hash at: ",hashIndex," in URL hash: ", initialHash);
         initialHash=  projectPath + '#' + initialHash;
         window.location.replace('${initialHash}');
       }
+      
+    
        /*
         //const projectPath = import.meta.env.VITE_GITHUB_PAGES || '';  // GitHub Pages repository name
         
@@ -82,10 +84,11 @@
             redirectRoute = '#/';
         }
       }
-      */
+      
       console.log("404 redirect top ", `${projectPath}${initialHash}`);
       // Redirect to the appropriate page with the token
       window.location.replace(`${projectPath}${redirectRoute}${hash}`);
+      */
     }
     // Standard SPA GitHub Pages redirect for non-auth URLs
     else {
