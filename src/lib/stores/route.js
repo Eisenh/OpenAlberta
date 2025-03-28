@@ -42,11 +42,12 @@ if (typeof window !== 'undefined') {
         console.log("rjs Current URL:", window.location.href);
         
         // Check for Supabase auth tokens
-        const initialHash = window.location.hash.substring(1); // remove leading #
+        let initialHash = window.location.hash.substring(1); // remove leading #
         console.log("rjs initialHash: ", initialHash);
         if (initialHash) {
             const hashIndex = initialHash.indexOf('#');
             if (hashIndex > 2) initialHash.replace('#','?');
+        console.log("rjs hashIndex: ", hashIndex, " initialHash w ?: ", initialHash);
             // 1. Find the position of the '?' within the hash
             const questionMarkIndex = initialHash.indexOf('?');
 
