@@ -45,8 +45,8 @@ if (typeof window !== 'undefined') {
             let initialHash = window.location.hash.substring(1); // remove leading #
             let hashQuery = initialHash.replace('#','?');
             console.log("rjs initialHash: ", initialHash, " cleanHash: ",hashQuery);
-            let fullPath=  projectPath + '#' + hashQuery;
-            window.location.replace(fullPath);
+            
+            navigate(hashQuery);
             /*
             if (initialHash) {
                 const hashIndex = initialHash.indexOf('#');
@@ -104,7 +104,8 @@ if (typeof window !== 'undefined') {
                     //navigate(redirectRoute);
                     return;
                 }
-                */
+                    */
+                
             } else {
                 console.log('No query parameters found in the hash.');
                 // Initial hash-based route handling
