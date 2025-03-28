@@ -13,15 +13,19 @@
 
     // Special handling for Supabase auth tokens (for any auth flow)
     if (window.location.hash && window.location.hash.includes('access_token=')) {
-      
-      const hash = window.location.hash;
-      console.log("404 Detected access token in URL hash ", window.location.hash);
+       // Check for Supabase auth tokens
+      const initialHash = window.location.hash.substring(1); // remove leading #
+      console.log("404 initialHash: ", initialHash);
+      if (initialHash) {
+        const hashIndex = initialHash.indexOf('#');
+        if (hashIndex > 2) initialHash.replace('#', '?');
+      console.log("404 Detected access token in URL hash ", initialHash);
 
       const projectPath = import.meta.env.VITE_GITHUB_PAGES || '';  // GitHub Pages repository name
 
       // Parse the hash parameters using proper URL parameter extraction
       // Fix: Use URLSearchParams to correctly extract the 'type' parameter (not token_type)
-      const hashParams = new URLSearchParams(hash.substring(1));
+      const hashParams = new URLSearchParams(initialHash);
       const authType = hashParams.get('type');  // This properly gets the 'type' parameter only
 
       console.log("404 Auth type:", authType);
@@ -42,7 +46,7 @@
         }
 
         const parsed = decodeURIComponent(results[2].replace(/\+/g, ' '));
-        console.log("404 parsed ", parsed);
+        console.log("404 results: ", reesults,  " parsed: ", parsed);
         return parsed;
       }
 
@@ -83,6 +87,7 @@
     }
     // Standard SPA GitHub Pages redirect for non-auth URLs
     else {
+      console.log("404 else ...");
       (function (l) {
         if (l.search[1] === '/') {
           var decoded = l.search.slice(1).split('&').map(function (s) {
