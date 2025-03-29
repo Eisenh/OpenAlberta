@@ -47,7 +47,7 @@
         view = 'reset';
         
         // Clean up the URL by removing the auth params
-        window.history.replaceState(null, '', '#/reset-password');
+        //window.history.replaceState(null, '', '#/reset-password');
       } else if (accessToken) {
         console.error("Invalid token type:", authType);
         errorMessage = 'Invalid password reset link';
@@ -94,43 +94,40 @@
     }
   }
 
-  async function handleResetPassword() {
-    loading = true;
-    errorMessage = '';
-    successMessage = '';
+async function handleResetPassword(tokenHash, password, confirmPassword) {
+  let loading = true;
+  let errorMessage = '';
+  let successMessage = '';
+  const navigate = useNavigate();
 
-    // Validate password match
-    if (password !== confirmPassword) {
-      errorMessage = 'Passwords do not match';
-      loading = false;
-      return;
-    }
-
-    try {
-      // First exchange the access token for a session
-      const { error: authError } = await supabase.auth.exchangeCodeForSession(accessToken);
-      
-      if (authError) throw authError;
-
-      // Then update the password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password
-      });
-
-      if (updateError) throw updateError;
-
-      successMessage = 'Password updated successfully!';
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000); // Redirect after 2 seconds
-    } catch (error) {
-      errorMessage = error.message || 'Password reset failed. Please request a new link.';
-      console.error('Password reset error:', error);
-      view = 'request'; // Reset to request view on error
-    } finally {
-      loading = false;
-    }
+  if (password !== confirmPassword) {
+    errorMessage = 'Passwords do not match';
+    loading = false;
+    return;
   }
+
+  try {
+    const { error: verifyError, data } = await supabase.auth.verifyOTP({
+      token_hash: tokenHash,
+      type: 'recovery',
+      password: password,
+    });
+
+    if (verifyError) {
+      throw verifyError;
+    }
+
+    successMessage = 'Password updated successfully!';
+    setTimeout(() => {
+      navigate('/login');
+    }, 2000);
+  } catch (error) {
+    errorMessage = error.message || 'Password reset failed. Please request a new link.';
+    console.error('Password reset error:', error);
+  } finally {
+    loading = false;
+  }
+}
 
   function toggleView() {
     view = view === 'request' ? 'reset' : 'request';

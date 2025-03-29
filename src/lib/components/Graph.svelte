@@ -54,7 +54,7 @@
             "font-weight": "bold", 
             "font-size": "20px",
             "width": 280,
-            "height": 140,
+            "height": 160,
             "shape": "rectangle",
             "grabbable": false,
             "border-width": 1,
@@ -156,7 +156,7 @@ function calculateNodePosition(index) {
   if (!container) return { x: 0, y: 0 };
   const { width, height } = container.getBoundingClientRect();
   const spreadWidth = width * 0.8;  // Use 80% of container width
-  const spreadHeight = height * 0.6; // Use 60% of container height
+  const spreadHeight = height * 0.8; // Use 60% of container height
   
   const positions = [
     { x: -spreadWidth/2, y: -spreadHeight/2 },  // top-left

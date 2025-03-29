@@ -135,7 +135,7 @@ if (typeof window !== 'undefined') {
         } else {
             const hashPath = window.location.hash.substring(1) || '/';
             const cleanPath = hashPath.split('?')[0]; // Remove query params
-            console.log("Window popstate 120, newUrl ", newUrl, " cleanPath: ", cleanPath);
+            console.log("Window load 138, newUrl ", newUrl, " cleanPath: ", cleanPath);
             currentRoute.set(cleanPath);
         }
         //handleUrl(window.location.href);
