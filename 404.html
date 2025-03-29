@@ -12,17 +12,17 @@
     // main index.html file, allowing client-side routing to handle the path
 
     // Special handling for Supabase auth tokens (for any auth flow)
-    const projectPath = '/OpenAlberta/';
+    const base = '/OpenAlberta/';
     if (window.location.hash && window.location.hash.includes('access_token=')) {
        // Check for Supabase auth tokens
       let initialHash = window.location.hash.substring(1); // remove leading #
       console.log("404 initialHash: ", initialHash);
       if (initialHash) {
         const hashIndex = initialHash.indexOf('#');
-        if (hashIndex > 2) initialHash = initialHash.replace('#', '?');
-        console.log("404 Detected hash at: ",hashIndex," in URL hash: ", initialHash);
-        initialHash=  projectPath + '#' + initialHash;
-        window.location.replace(initialHash);
+        if (hashIndex > 2) cleanHash = initialHash.replace('#', '?');
+        console.log("404 Detected hash at: ",hashIndex," in URL hash: ", cleanHash);
+        //initialHash= '#' + cleanHash;
+        window.location.replace(base + '#' + cleanHash);
       }
       
     
