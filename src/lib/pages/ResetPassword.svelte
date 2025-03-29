@@ -98,7 +98,7 @@ async function handleResetPassword(tokenHash, password, confirmPassword) {
   let loading = true;
   let errorMessage = '';
   let successMessage = '';
-  const navigate = useNavigate();
+  
 
   if (password !== confirmPassword) {
     errorMessage = 'Passwords do not match';
