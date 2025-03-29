@@ -107,20 +107,28 @@ async function handleResetPassword() {
   }
 
   try {
-    const { error: verifyError, data } = await supabase.auth.verifyOTP({
-      token_hash: accessToken,
-      type: 'recovery',
-      password: password,
-    });
+    console.log("Resetting with: ",supabase.auth)
 
-    if (verifyError) {
-      throw verifyError;
+    e.preventDefault();
+            
+    if (!accessToken) {
+      error = 'Access token is missing.';
+      return;
     }
-
-    successMessage = 'Password updated successfully!';
-    setTimeout(() => {
-      navigate('/login');
-    }, 2000);
+            
+    const { error: resetError } = await supabase.auth.update({ password: password, access_token: accessToken });
+            
+    if (resetError) {
+                error = resetError.message;
+    } 
+    else {  
+      success = true;  
+      successMessage = 'Password updated successfully!';
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+    }
+  
   } catch (error) {
     errorMessage = error.message || 'Password reset failed. Please request a new link.';
     console.error('Password reset error:', error);
