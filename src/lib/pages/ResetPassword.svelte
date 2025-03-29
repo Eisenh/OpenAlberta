@@ -108,9 +108,6 @@ async function handleResetPassword() {
 
   try {
     console.log("Resetting with: ",supabase.auth)
-
-    e.preventDefault();
-            
     if (!accessToken) {
       error = 'Access token is missing.';
       return;
