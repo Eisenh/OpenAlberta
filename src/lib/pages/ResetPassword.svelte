@@ -94,7 +94,7 @@
     }
   }
 
-async function handleResetPassword(tokenHash, password, confirmPassword) {
+async function handleResetPassword() {
   let loading = true;
   let errorMessage = '';
   let successMessage = '';
@@ -108,7 +108,7 @@ async function handleResetPassword(tokenHash, password, confirmPassword) {
 
   try {
     const { error: verifyError, data } = await supabase.auth.verifyOTP({
-      token_hash: tokenHash,
+      token_hash: accessToken,
       type: 'recovery',
       password: password,
     });
