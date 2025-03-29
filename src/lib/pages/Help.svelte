@@ -214,9 +214,9 @@
   <section>
     <button 
       class="section-header" 
-      on:click={() => toggleSection('vectorSearch')}
-      on:keydown={(e) => handleKeyDown(e, 'vectorSearch')}
-      aria-expanded={sectionsExpanded.vectorSearch}
+      on:click={() => toggleSection('caseStudy')}
+      on:keydown={(e) => handleKeyDown(e, 'caseStudy')}
+      aria-expanded={sectionsExpanded.caseStudy}
       aria-controls="vectorSearch-content"
       type="button"
     >
@@ -224,7 +224,7 @@
       <span class="toggle-icon">{sectionsExpanded.caseStudy ? '−' : '+'}</span>
     </button>
     {#if sectionsExpanded.caseStudy}
-      <div class="section-content" id="vectorSearch-content">
+      <div class="section-content" id="caseStudy-content">
         <p>
           To demonstrate some pecuiarities of vector search, we can go through a simple example. Be sure to try it!
         </p>
