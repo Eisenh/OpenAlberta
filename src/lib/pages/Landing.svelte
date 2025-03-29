@@ -832,23 +832,25 @@ async function handleTextSearch(searchText) {  // only for search from search ba
         <div class="search-container">
           <div class="search-input-wrapper">
             <div class="search-with-history">
-              <input
-                type="text"
+            <textarea
                 id="search-input"
                 name="search-input"
                 bind:value={searchInput}
                 placeholder="What data are you looking for?"
                 class="search-input"
+                rows="1"
                 on:focus={() => showHistoryDropdown = $searchHistory.length > 0}
                 on:blur={() => setTimeout(() => showHistoryDropdown = false, 200)}
                 on:input={(e) => console.log("Input changed:", e.target.value, "searchInput:", searchInput)}
                 on:keydown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
                     console.log("Enter pressed, searchInput:", searchInput);
+                    showHistoryDropdown = false;
                     document.querySelector('.search-button').click();
                   }
                 }}
-              />
+              ></textarea>
               
               {#if showHistoryDropdown && $searchHistory.length > 0}
                 <div class="history-dropdown">
@@ -1116,28 +1118,32 @@ async function handleTextSearch(searchText) {  // only for search from search ba
 
   .left-panel {
     width: 30dvw;
+    min-width: 150; /* Dynamic width based on controls */
     flex-shrink: 0;
     height: auto;
   }
 
   .right-panel {
-     /*flex: 1;
-    min-width: 0; */
-    width: 65vw; 
+    flex: 1;
+    min-width: 0; /* Prevent flex items from overflowing */
+    max-width: 100%; /* Prevent overflow on small screens */
+    padding: 0 var(--spacing-sm); /* Add padding */
     display: flex;
-    flex-direction: column;  /* Change to row layout */
+    flex-direction: column;
     gap: var(--spacing-md);
     height: auto;
   }
 
   
   .graph-container {
-    flex: 0 0 70vh;  /* Don't grow, don't shrink, start at 60vh */
-    min-height: 400px;  /* Minimum height fallback */
+    flex: 0 0 70vh;
+    min-height: 400px;
     position: relative;
     background-color: var(--color-background-alt);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-md);
+    margin: 0 var(--spacing-sm);  /* Add horizontal margin */
+    max-width: calc(100% - var(--spacing-md));  /* Prevent overflow */
   }
 
   /* Add this to prevent any layout transitions */
@@ -1157,8 +1163,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
       transition: none;  /* Remove animation */
     }
     
-    .search-container,
-    .graph-container {
+    .search-container {
       width: 100%;
       transition: none;  /* Remove animation */
     }
@@ -1166,12 +1171,24 @@ async function handleTextSearch(searchText) {  // only for search from search ba
 
   @media (max-width: 768px) {
     .search-input-wrapper {
-      flex-direction: column;
+      flex-direction: row; /* Keep row instead of column */
+      flex-wrap: wrap; /* Allow wrapping if needed */
+    }
+    .search-input {
+    min-height: 60px; /* Make taller on small screens */
+    line-height: 1.4; /* Improve text layout */
+    padding-top: var(--spacing-sm);
+    padding-bottom: var(--spacing-sm);
+    }
+    .search-with-history {
+      flex: 1 1 80%; /* Take most of the space but allow wrapping */
+      min-width: 200px;
     }
     
     .search-button {
-      width: 100%;
-      justify-content: center;
+      flex: 0 0 auto; /* Don't grow, don't shrink, size to content */
+      min-width: 42px;
+      min-height: 42px;
     }
   }
   
@@ -1234,13 +1251,14 @@ async function handleTextSearch(searchText) {  // only for search from search ba
     margin-bottom: var(--spacing-lg);
   }
   
-  .search-input-wrapper {
-    display: flex;
-    align-items: stretch;
-    gap: 0;
-    margin-bottom: var(--spacing-md);
-    height: 42px; /* Set a specific height for the wrapper */
-  }
+ .search-input-wrapper {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-bottom: var(--spacing-md);
+  height: auto; /* Changed from fixed height */
+  min-height: 42px;
+}
   
   .search-input {
     flex-grow: 1;
@@ -1364,6 +1382,32 @@ async function handleTextSearch(searchText) {  // only for search from search ba
     margin-bottom: var(--spacing-md);
   }
 
+  @media (max-width: 480px) {
+    .left-panel {
+      width: 100%; /* Full width on smaller screens */
+      min-width: auto; /* Override max-content */
+    }
+    
+    .graph-controls {
+      flex-wrap: wrap; /* Allow controls to wrap */
+      justify-content: space-between;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+    }
+    
+  .mode-select {
+    min-width: 120px;
+    width: auto;
+    box-sizing: border-box;
+    transition: width 0.2s ease;
+  }
+
+    .threshold-slider {
+      width: 100%;
+    }
+  }
+
   .control-group {
     display: flex;
     flex-direction: column;
@@ -1375,14 +1419,23 @@ async function handleTextSearch(searchText) {  // only for search from search ba
     color: var(--color-text-secondary);
   }
 
-  .mode-select,
+  .mode-select {
+    padding: 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--color-background-alt);
+    color: var(--color-text);
+    min-width: 200px;
+  }
+  
   .threshold-slider {
     padding: 0.5rem;
     border: 1px solid var(--color-border);
-    border-radius: var (--border-radius-sm);
+    border-radius: var(--border-radius-sm);
     background-color: var(--color-background-alt);
     color: var(--color-text);
   }
+
 
   .threshold-slider {
     width: 150px;

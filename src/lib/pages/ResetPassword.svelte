@@ -2,7 +2,7 @@
   // @ts-nocheck - Svelte 5 TypeScript definition issues
   import { onMount } from 'svelte';
   import { supabase } from '../supabaseClient.js';
-  import { navigate, getParameterByName } from '../stores/route.js';
+  import { navigate, getParameterByName, handleUrl } from '../stores/route.js';
 
   // State variables
   let email = '';
@@ -16,7 +16,9 @@
 
   onMount(() => {
     // Check if we have an access token in the URL (for password reset)// Check for Supabase auth tokens
-    const initialHash = window.location.hash;
+    //const initialHash = window.location.hash;
+    let initialHash = window.location.hash.substring(1); // remove leading #
+        let hashQuery = initialHash.replace('#','?');
     console.log("ResetPW initialHash: ", initialHash);
     
         // 1. Find the position of the '?' within the hash

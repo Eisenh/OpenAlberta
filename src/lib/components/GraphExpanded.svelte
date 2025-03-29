@@ -90,7 +90,7 @@
       //wheelSensitivity: 0.3,
       zoom: 1,  // Set initial zoom
       pan: { x: 0, y: 0 },  // Center the graph
-      fit: true  // Adjust the viewport to fit all nodes
+      fit: false  // Adjust the viewport to fit all nodes
     });
     
     // Apply expanded style
@@ -392,8 +392,8 @@
 <!-- Tooltip for hover event -->
 <div id="graph-tooltip-expanded" class="graph-tooltip"></div>
 
-<!-- Debug Overlay -->
-{#if import.meta.env.DEV}
+<!-- Debug Overlay  -->
+{#if false && import.meta.env.DEV}
   <div class="graph-debug-overlay">
     <span>Status: {graphStatus}   Zoom {zoom}</span>
     <span>Nodes: {nodeCount} | Edges: {edgeCount}</span>
@@ -405,7 +405,6 @@
   .graph-wrapper {
     width: 100%;
     height:100%;
-    height: 500px;
     background-color: var(--color-background-alt);
     border-radius: var(--border-radius-md);
     position: relative; /* Added to make this the positioning context for the tooltip */

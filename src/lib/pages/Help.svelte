@@ -112,8 +112,8 @@
         <h3>Tips for efficient searching</h3>
         <ul>
           <li><strong>Use natural language</strong> - Instead of just keywords, try asking a question or describing the data you need</li>
-          <li><strong>Be specific</strong> - Longer and more detailed queries are likely to yield better results. A paragraph is not unreasonable 
-            if searching subject areas with many similar datasets</li>
+          <li><strong>Be specific</strong> - Detailed queries are likely to yield better results. A long sentence or short paragraph 
+            are useful if searching subject areas with many similar datasets</li>
           <li><strong>Explore related datasets</strong> - Double-click on interesting results to pivot your search in that direction.</li>
           <li>Adjust the <strong>Similarity Threshold</strong> slider before repeating a search to limit or expand results by relevance</li>
           <li>Use the <strong>visual clues</strong> such as node sizes and cluster colors to understand the results. Adjust the Display threshold
@@ -241,38 +241,31 @@
     {#if sectionsExpanded.technicalDetails}
       <div class="section-content" id="technicalDetails-content">
         <p>
-          For those interested in the technical aspects, the application is built with:
+          Caveat: this is a side project, and exists partly as a way to learn a few things that I had no experience with, 
+          including Svelte, Supabase auth, github hosting, and Xenova Transformers.  I also wanted to explore various ways of 
+          visualizing data. Each view was developed separately, using different logic as to how the data is handled, 
+          filtered and displayed, so there will be minor inconsistencies.  Since the goal was to ensure I understood the 
+          details, I did not use the normal dev tools such as Sveltekit or even routing, UI or css libraries. That REALLy
+          isn't something I'd recommend. I may recreate this in a more production-ready framework at some point.
+        
         </p>
         
         <h3>Front-end Technologies</h3>
         <ul>
           <li><strong>Svelte</strong> - A reactive JavaScript framework for building the user interfaces</li>
+           <li><strong>Xenova Transformers</strong> - Browser-compatible version of the Hugging Face Transformers library</li>
+          <li><strong>all-MiniLM-L6-v2</strong> - A compact language model for generating text embeddings</li>
+          <li><strong>ONNX Runtime</strong> - The engine that runs the model for efficient model inference in the browser</li>
           <li><strong>Cytoscape.js</strong> - For interactive graph visualization</li>
           <li><strong>Tensorflow.js</strong> - A WebGPU enabled machine learing library for fast matrix calculations</li>
+          <li><strong>jLouvain.js</strong> - An implementation of the Louvain custering algorithm</li>
         </ul>
-        <p>
-          The data is retrieved, verified and formated for use by cytoscape. For the Similarity Network view, a similarity 
-          matrix representing relationships between every pair of results is constructed in the browser. 
-          That is a 50x50 matrix with cosine similarity calculations in 384 dimensions. Tensorflow.js makes the matrix calculations 
-          feasible without causing lag for the user.
-        </p>
-        <p>
-          One word of warning: this is a side project, and exists partly as a way to learn Svelte, and to re-learn web development.
-          I also wanted to explore various ways of visualizing data. Each view was developed separately, using different logic as to how the data is handled. 
-          filtered and displayed, so there wil be minor inconsistencies.
-        </p>
+       
         
         <h3>Back-end Technologies</h3>
         <ul>
           <li><strong>Supabase</strong> - A PostgreSQL database with vector search capabilities. Also handles Auth.</li>
           <li><strong>pgvector</strong> - An extension that enables PostgreSQL to store and query vector embeddings</li>
-        </ul>
-        
-        <h3>Emedding Model </h3>
-        <ul>
-          <li><strong>Xenova Transformers</strong> - Browser-compatible version of the Hugging Face Transformers library</li>
-          <li><strong>all-MiniLM-L6-v2</strong> - A compact language model for generating text embeddings</li>
-          <li><strong>ONNX Runtime</strong> - The engine that runs the model for efficient model inference in the browser</li>
         </ul>
         
         <h3>Data Processing</h3>
@@ -283,11 +276,34 @@
           All dataset metadata from open.alberta.ca was processed as follows:
         </p>
         <ol>
-          <li>Important fields from the metadata was extracted and normalized</li>
+          <li>Important fields from the metadata were extracted and normalized</li>
+
           <li>Text descriptions are converted to vector embeddings using all-MiniLM-L6-v2</li>
           <li>Embeddings are stored in the Supabase database using pgvector</li>
           <li>Vector similarity search is performed using cosine similarity</li>
         </ol>
+        
+         <p>
+          Performance is always a major concern. It takes a moment to load the embeding model, but after that, performance 
+          should be top-notch. The model used is a good compromise between small size (for fast loading and execution) an precision
+          of the embedding itself, with an execution time of milliseconds. I chose Svelte because it is compiled away at build
+          time and therefor creates a small and fast bundle.  I started the project using Qdrant vector database, which is faster than pgvector,
+          but found it mattered little for the small database size used here (30,000 records). 
+          </p>
+          <p>
+            Once the query embedding vector is computed and used to query the database, results (up to 50) are verified and formatted for 
+            use by cytoscape. For the Similarity Network view, a similarity matrix representing relationships between every pair of 
+            results is constructed in the browser in a fraction of a second with Tensorflow.js. That is a 50x50 matrix with cosine similarity calculations
+             in 384 dimensions.   Computing these beforehand would require about 
+            a trillion 384 dimensional matix calculations and require a database of a trillion records. That would not fit within 
+            Supabase's free tier, to say the least.
+        </p>
+         <p>
+          Authentication and sign-in has little significance in the app. I just wanted to go through the experience 
+          with Supabase auth and to see how it compares to other auth stacks I have used in the past. The only surprise was 
+          an malformed password reset link that took an embarrasingly long time to troubleshoot. Admin users see an administration
+           menu and dashboard that isn't fully implemented yet (and may never be, since the supabase dashboard is fine).
+        </p>
       </div>
     {/if}
   </section>

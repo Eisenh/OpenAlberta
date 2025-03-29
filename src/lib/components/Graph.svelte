@@ -36,8 +36,8 @@
     
     cy = cytoscape({
       container: container,
-      userPanningEnabled: true,
-      userZoomingEnabled: true,
+      userPanningEnabled: false,
+      userZoomingEnabled: false,
       wheelSensitivity: 0.3,
       style: [
         {
@@ -56,6 +56,7 @@
             "width": 280,
             "height": 140,
             "shape": "rectangle",
+            "grabbable": false,
             "border-width": 1,
             "border-color": "#E0E0E0",
             "padding": 12
@@ -72,7 +73,8 @@
             "height": 120,
             "padding": 12,
             "font-size": "24px",
-            "text-max-width": "300"
+            "text-max-width": "300",
+            "grabbable": false
           }
         },
         {
@@ -151,18 +153,20 @@
   }
 // Add this function before updateGraph
 function calculateNodePosition(index) {
-  const width = 800;  // Horizontal spread
-  const height = 500; // Vertical spread
+  if (!container) return { x: 0, y: 0 };
+  const { width, height } = container.getBoundingClientRect();
+  const spreadWidth = width * 0.8;  // Use 80% of container width
+  const spreadHeight = height * 0.6; // Use 60% of container height
   
   const positions = [
-    { x: -width/2, y: -height/2 },  // top-left
-    { x: width/2, y: -height/2 },   // top-right
-    { x: width/2, y: height/2 },    // bottom-right
-    { x: -width/2, y: height/2 },   // bottom-left
-    { x: 0, y: -height/2 },         // top-center
-    { x: width/2, y: 0 },           // right-center
-    { x: 0, y: height/2 },          // bottom-center
-    { x: -width/2, y: 0 }           // left-center
+    { x: -spreadWidth/2, y: -spreadHeight/2 },  // top-left
+    { x: spreadWidth/2, y: -spreadHeight/2 },   // top-right
+    { x: spreadWidth/2, y: spreadHeight/2 },    // bottom-right
+    { x: -spreadWidth/2, y: spreadHeight/2 },   // bottom-left
+    { x: 0, y: -spreadHeight/2 },               // top-center
+    { x: spreadWidth/2, y: 0 },                 // right-center
+    { x: 0, y: spreadHeight/2 },                // bottom-center
+    { x: -spreadWidth/2, y: 0 }                 // left-center
   ];
   
   return positions[index % 8];
@@ -210,6 +214,7 @@ function updateGraph(data) {
       cy.add([
         ...data.nodes.map((node, index) => ({
           data: { ...node },
+          locked: true,
           position: node.id === 'query' 
             ? { x: 0, y: 0 }
             : calculateNodePosition(index - 1)
@@ -244,6 +249,17 @@ function updateGraph(data) {
 }
   onMount(() => {
     initGraph();
+    
+    // Add container resize observer
+    const resizeObserver = new ResizeObserver(() => {
+      if (cy) {
+        cy.resize().fit();
+      }
+    });
+    
+    if (container) {
+      resizeObserver.observe(container);
+    }
     
     // Add window resize handler
     const handleResize = () => {
@@ -284,7 +300,7 @@ function updateGraph(data) {
 <style>
   .graph-wrapper {
     width: 100%;
-    height: 500px;
+    height: clamp(400px, 70vh, 800px); /* Responsive height with limits */
     background-color: var(--color-background-alt);
     border-radius: var(--border-radius-md);
     position: relative; /* Added to make this the positioning context for the tooltip */

@@ -704,7 +704,7 @@
 <div id="graph-tooltip" class="graph-tooltip"></div>
 
 <!-- Debug Overlay -->
-{#if import.meta.env.DEV}
+{#if false && import.meta.env.DEV}
   <div class="graph-debug-overlay">
     <span>Status: {graphStatus}   Zoom {zoom}</span>
     <span>Nodes: {nodeCount} | Edges: {edgeCount}</span>
@@ -715,11 +715,11 @@
 <style>
   .graph-wrapper {
     width: 100%;
-    height:100%;
-    height: 500px;
+    height: 100%; /* clamp(400px, 60vh, 700px); /* Match Graph.svelte's responsive height */
     background-color: var(--color-background-alt);
     border-radius: var(--border-radius-md);
-    position: relative; /* Added to make this the positioning context for the tooltip */
+    position: relative;
+    margin-bottom: 1rem; /* Add matching bottom margin */
   }
   
   .graph-tooltip {
