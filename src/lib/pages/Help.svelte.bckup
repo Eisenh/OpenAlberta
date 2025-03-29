@@ -1,15 +1,13 @@
-
 <script>
   import { onMount } from 'svelte';
   
   // State to track if sections are expanded/collapsed
   let sectionsExpanded = {
     introduction: true,
-    searchFunctionality: false,
-    caseStudy: false,
-    vectorSearch: false,
-    graphVisualization: false,
-    technicalDetails: false,
+    searchFunctionality: true,
+    vectorSearch: true,
+    graphVisualization: true,
+    technicalDetails: true,
     tips: true
   };
   
@@ -29,12 +27,13 @@
   // Format date for the footer
   const currentYear = new Date().getFullYear();
 </script>
+
 <div class="help-container">
   <header>
     <h1>Help & Information</h1>
     <p class="last-updated">Last Updated: March 25, 2025</p>
   </header>
-
+  
   <section>
     <button 
       class="section-header" 
@@ -61,7 +60,7 @@
       </div>
     {/if}
   </section>
-
+  
   <section>
     <button 
       class="section-header" 
@@ -82,7 +81,11 @@
           or click the search icon. Results will be displayed in both graph and list formats (below the graph).
         </p>
         
-        <p>        
+        <h3>Understanding Results</h3>
+        <p>
+          Results are sorted by relevance to your query, with the most semantically similar datasets 
+          having thicker links and larger nodes in the graph view. 
+        
           Each result includes:
         </p>
         <ul>
@@ -92,6 +95,20 @@
           <li><strong>Tags</strong> - Categories or keywords associated with the dataset</li>
         </ul>
         
+        <h3>Exploring the Graph</h3>
+        <p>
+          The interactive graph visualization shows relationships between your query and the results:
+        </p>
+        <ul>
+          <li><strong>The query itself </strong> appears in orange near the center</li>
+          <li><strong>Hover your mouse pointer</strong> over a node to see the dataset's description in a tooltip, or over a link to see the calculated similarity</li>
+          <li><strong>Click on a node</strong> to view details about that dataset in the left panel</li>
+          <li><strong>Double-click on a node</strong> to use that dataset as the basis of a new search</li>
+          <li>Switch between different <strong>View Modes</strong> to see different visualizations of the data</li>
+          <li>In <strong>Similarity Network </strong> view, the similarity between results is displayed. 
+            Results are clustered into 1 or more mutually similar groups by color.</li>
+        </ul>
+
         <h3>Tips for efficient searching</h3>
         <ul>
           <li><strong>Use natural language</strong> - Instead of just keywords, try asking a question or describing the data you need</li>
@@ -100,7 +117,7 @@
           <li><strong>Explore related datasets</strong> - Double-click on interesting results to pivot your search in that direction.</li>
           <li>Adjust the <strong>Similarity Threshold</strong> slider before repeating a search to limit or expand results by relevance</li>
           <li>Use the <strong>visual clues</strong> such as node sizes and cluster colors to understand the results. Adjust the Display threshold
-            to focus on the most significant relationships in the network view</li>
+             to focus on the most significant relationships in the network view</li>
           <li><strong>Check your search history</strong> - Review and refine your previous searches</li>
         </ul>
 
@@ -109,59 +126,53 @@
           Your recent searches are saved locally and can be accessed by clicking in the search box. 
           Click on any previous search to run it again. If you signed in, you can see your entier search history on the profile page.
         </p>
-        <h3>Exploring the Graph</h3>
-        
-         <p>
-          The application offers three different ways to visualize search results:
-        </p>
-        <ul>
-          <li>
-
-            <h3>Compact View</h3>
-            <p>
-              The compact view shows your query and the top 8 most relevant results. This is the default view 
-              and is useful for quickly identifying the most relevant datasets.
-            </p>
-          </li>
-          <li>
-
-            <h3>Expanded View</h3>
-            <p>
-              The expanded view shows all results that meet the current similarity threshold, displayed in an
-              expanding spiral based on similarity. The thickness of the connection, the diameter of the node, 
-              and the closeness to the center are proportional to the strength of the match.
-            </p>
-          </li>
-          <li>
-            <h3>Similarity Network</h3>
-            <p>
-              The similarity graph shows connections not only between your query and results, but also between 
-              the result datasets themselves. This helps identify clusters of related datasets and reveals the 
-              underlying structure of the data ecosystem. Clusters are automatically identified and assigned unique colors.
-              Similar to the Expanded View, connections thickness and node size represent semantic similarity.
-            </p>
-          </li>
-      </ul>
-        
-        
-        
-         <h3>Navigating the Graphs</h3>
-        <p>
-          The interactive graph visualizations shows relationships between your query and the results:
-        </p>
-        <ul>
-          <li><strong>The query itself </strong> appears in orange near the center</li>
-          <li><strong>Hover your mouse pointer</strong> over a node to see the dataset's description in a tooltip, or over a link to see the calculated similarity</li>
-          <li><strong>Click on a node</strong> to view details about that dataset in the left panel</li>
-          <li><strong>Double-click on a node</strong> to use that dataset as the basis of a new search</li>
-          <li>Switch between different <strong>View Modes</strong> using the dropdown control below the search bar to chose the view mode</li>
-          
-        </ul>
-
       </div>
     {/if}
   </section>
   
+  <section>
+    <button 
+      class="section-header" 
+      on:click={() => toggleSection('graphVisualization')}
+      on:keydown={(e) => handleKeyDown(e, 'graphVisualization')}
+      aria-expanded={sectionsExpanded.graphVisualization}
+      aria-controls="graphVisualization-content"
+      type="button"
+    >
+      <h2>3. Graph Visualization Modes</h2>
+      <span class="toggle-icon">{sectionsExpanded.graphVisualization ? '−' : '+'}</span>
+    </button>
+    {#if sectionsExpanded.graphVisualization}
+      <div class="section-content" id="graphVisualization-content">
+        <p>
+          The application offers three different ways to visualize search results:
+        </p>
+        
+        <h3>Compact View</h3>
+        <p>
+          The compact view shows your query and the top 8 most relevant results. This is the default view 
+          and is useful for quickly identifying the most relevant datasets.
+        </p>
+        
+        <h3>Expanded View</h3>
+        <p>
+          The expanded view shows all results that meet the current similarity threshold, displayed in an
+          expanding spiral based on similarity. The thickness of the connection, the diameter of the node, 
+          and the closeness to the center are proportional to the strength of the match.
+        </p>
+        
+        <h3>Similarity Network</h3>
+        <p>
+          The similarity graph shows connections not only between your query and results, but also between 
+          the result datasets themselves. This helps identify clusters of related datasets and reveals the 
+          underlying structure of the data ecosystem. Clusters are automatically identified and assigned unique colors.
+        </p>
+        <p>
+          Similar to the Expanded View, connections thickness and node size represent semantic similarity.
+        </p>
+      </div>
+    {/if}
+  </section>
   
   <section>
     <button 
@@ -172,7 +183,7 @@
       aria-controls="vectorSearch-content"
       type="button"
     >
-      <h2>3. Semantic Vector Search</h2>
+      <h2>4. Semantic Vector Search</h2>
       <span class="toggle-icon">{sectionsExpanded.vectorSearch ? '−' : '+'}</span>
     </button>
     {#if sectionsExpanded.vectorSearch}
@@ -210,63 +221,6 @@
     {/if}
   </section>
 
-  
-  <section>
-    <button 
-      class="section-header" 
-      on:click={() => toggleSection('vectorSearch')}
-      on:keydown={(e) => handleKeyDown(e, 'vectorSearch')}
-      aria-expanded={sectionsExpanded.vectorSearch}
-      aria-controls="vectorSearch-content"
-      type="button"
-    >
-      <h2>4. Semantic Vector Search Case Study</h2>
-      <span class="toggle-icon">{sectionsExpanded.caseStudy ? '−' : '+'}</span>
-    </button>
-    {#if sectionsExpanded.caseStudy}
-      <div class="section-content" id="vectorSearch-content">
-        <p>
-          To demonstrate some pecuiarities of vector search, we can go through a simple example. Be sure to try it!
-        </p>
-        
-          <h3>
-            "Artificial Intelligence" versus "What is Alberta's artifical intelligence strategy?" versus "AI"
-          </h3>
-          <ul>
-          <li> 
-          <p>
-            Searching for the term <strong> "artifical intelligence"</strong> brings up few results with the default settings. 
-            This is because the simple two-word search phrase does not have much semantic content. It is specific, 
-            but you can imagine it can be represented with number in only a couple of dimensions. As a result,
-              the number of ways it can be similar to something else is limited. It is not that there are few 
-              results that match 'artificial intelligence' to <i>some</i> degree, it is just that the matching 
-              similarity is necessarily small, and mostly below the default Search Threshold of 0.3.  To see more results,
-            lower the 'Search Threshold' slider before the search.  Note that the results include results in French
-              as well as English, since eaning is language independent!
-          </p>
-          </li>
-          <li>
-
-          <p>
-            The search phrase <strong>"What is Alberta's artifical intelligence strategy?"</strong> has 
-            a lot more subtle detail. It has more 'meaning', which is what the vector search matches. The search can 
-            therefor find more ways in which datasets can be similar. That is why it is able to bring up more results 
-            for a given similarity threshold. 
-          </p>
-          </li>
-          <li>
-          <p>
-            A search for <strong>"AI"</strong> brings up more search results than "artificial intelligence".
-            However, when the results are examined, you can see it brings up the same two results related to artiicial intelligence, 
-            plus others that are in some way related to the abbreviation "AI". The eaning of "AI" and "artificial intelligence"
-            are the same in one context, but there are more contexts in which "AI" has some meaning.
-          </p>
-          </li>
-        </ul>
-      </div>
-    {/if}
-  </section>
-
   <section>
     <button 
       class="section-header" 
@@ -283,23 +237,25 @@
       <div class="section-content" id="technicalDetails-content">
         <p>
           Caveat: this is a side project, and exists partly as a way to learn a few things that I had no experience with, 
-          including Svelte, Supabase auth, github hosting, and Xenova Transformers. I also wanted to explore various ways of 
+          including Svelte, Supabase auth, github hosting, and Xenova Transformers.  I also wanted to explore various ways of 
           visualizing data. Each view was developed separately, using different logic as to how the data is handled, 
-          filtered and displayed, so there will be minor inconsistencies. Since the goal was to ensure I understood the 
+          filtered and displayed, so there will be minor inconsistencies.  Since the goal was to ensure I understood the 
           details, I did not use the normal dev tools such as Sveltekit or even routing, UI or css libraries. That REALLy
           isn't something I'd recommend. I may recreate this in a more production-ready framework at some point.
+        
         </p>
         
         <h3>Front-end Technologies</h3>
         <ul>
           <li><strong>Svelte</strong> - A reactive JavaScript framework for building the user interfaces</li>
-          <li><strong>Xenova Transformers</strong> - Browser-compatible version of the Hugging Face Transformers library</li>
+           <li><strong>Xenova Transformers</strong> - Browser-compatible version of the Hugging Face Transformers library</li>
           <li><strong>all-MiniLM-L6-v2</strong> - A compact language model for generating text embeddings</li>
           <li><strong>ONNX Runtime</strong> - The engine that runs the model for efficient model inference in the browser</li>
           <li><strong>Cytoscape.js</strong> - For interactive graph visualization</li>
           <li><strong>Tensorflow.js</strong> - A WebGPU enabled machine learing library for fast matrix calculations</li>
           <li><strong>jLouvain.js</strong> - An implementation of the Louvain custering algorithm</li>
         </ul>
+       
         
         <h3>Back-end Technologies</h3>
         <ul>
@@ -308,36 +264,40 @@
         </ul>
         
         <h3>Data Processing</h3>
+        <ul>
+          
+        </ul>
         <p>
           All dataset metadata from open.alberta.ca was processed as follows:
         </p>
         <ol>
           <li>Important fields from the metadata were extracted and normalized</li>
+
           <li>Text descriptions are converted to vector embeddings using all-MiniLM-L6-v2</li>
           <li>Embeddings are stored in the Supabase database using pgvector</li>
           <li>Vector similarity search is performed using cosine similarity</li>
         </ol>
         
-        <p>
+         <p>
           Performance is always a major concern. It takes a moment to load the embeding model, but after that, performance 
           should be top-notch. The model used is a good compromise between small size (for fast loading and execution) an precision
           of the embedding itself, with an execution time of milliseconds. I chose Svelte because it is compiled away at build
-          time and therefor creates a small and fast bundle. I started the project using Qdrant vector database, which is faster than pgvector,
+          time and therefor creates a small and fast bundle.  I started the project using Qdrant vector database, which is faster than pgvector,
           but found it mattered little for the small database size used here (30,000 records). 
+          </p>
+          <p>
+            Once the query embedding vector is computed and used to query the database, results (up to 50) are verified and formatted for 
+            use by cytoscape. For the Similarity Network view, a similarity matrix representing relationships between every pair of 
+            results is constructed in the browser in a fraction of a second with Tensorflow.js. That is a 50x50 matrix with cosine similarity calculations
+             in 384 dimensions.   Computing these beforehand would require about 
+            a trillion 384 dimensional matix calculations and require a database of a trillion records. That would not fit within 
+            Supabase's free tier, to say the least.
         </p>
-        <p>
-          Once the query embedding vector is computed and used to query the database, results (up to 50) are verified and formatted for 
-          use by cytoscape. For the Similarity Network view, a similarity matrix representing relationships between every pair of 
-          results is constructed in the browser in a fraction of a second with Tensorflow.js. That is a 50x50 matrix with cosine similarity calculations
-          in 384 dimensions. Computing these beforehand would require about 
-          a trillion 384 dimensional matix calculations and require a database of a trillion records. That would not fit within 
-          Supabase's free tier, to say the least.
-        </p>
-        <p>
+         <p>
           Authentication and sign-in has little significance in the app. I just wanted to go through the experience 
           with Supabase auth and to see how it compares to other auth stacks I have used in the past. The only surprise was 
           an malformed password reset link that took an embarrasingly long time to troubleshoot. Admin users see an administration
-          menu and dashboard that isn't fully implemented yet (and may never be, since the supabase dashboard is fine).
+           menu and dashboard that isn't fully implemented yet (and may never be, since the supabase dashboard is fine).
         </p>
       </div>
     {/if}

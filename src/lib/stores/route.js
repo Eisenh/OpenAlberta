@@ -126,6 +126,18 @@ if (typeof window !== 'undefined') {
     window.addEventListener('load', () => {
         console.log("rjs Window load event - initializing routes");
         console.log("rjs Current URL:", window.location.href);
+        
+        let newUrl = '';
+        let currentUrl = window.location.href;
+        if (currentUrl.includes('#access')) {
+            newUrl = currentUrl.replace('#access','?access');
+            window.location.href = newUrl;  // refires the event without the '#access'
+        } else {
+            const hashPath = window.location.hash.substring(1) || '/';
+            const cleanPath = hashPath.split('?')[0]; // Remove query params
+            console.log("Window popstate 120, newUrl ", newUrl, " cleanPath: ", cleanPath);
+            currentRoute.set(cleanPath);
+        }
         //handleUrl(window.location.href);
         // Check for Supabase auth tokens
         
