@@ -10,6 +10,7 @@
   let confirmPassword = '';
   let loading = false;
   let errorMessage = '';
+  let success = false;
   let successMessage = '';
   let view = 'request'; // 'request' or 'reset'
   let accessToken = null;
