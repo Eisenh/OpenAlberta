@@ -52,7 +52,7 @@
         view = 'reset';
         
         //const { error } = await supabase.auth.exchangeCodeForSession({ accessToken, refresh_token });
-        const { error } = await supabase.auth.setSession({ access_token, refresh_token });  
+        const { error } = await supabase.auth.setSession({ access_token:accessToken, refresh_token: refresh_token });  
         if (error) {
           console.error('Error setting session:', error.message);
         } else {
