@@ -168,7 +168,7 @@
       console.log("Resetting with: ",password," pwd ",supabase.auth)
       const { error: resetError } = await supabase.auth.updateUser({ password: password });
       if (resetError) {
-        console.log("Reset - Error with update: ", error);
+        console.log("Reset - Error with update: ", resetError.message);
         errorMessage = resetError.message;
       } 
       else {  
