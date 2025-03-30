@@ -156,15 +156,15 @@
         console.log("reset 153 ", errorMessage);
         //return;  // don't need acess token here if already signed in.
       }
-      /*
-      //const { user, error: signInError } = await supabase.auth.signIn({ access_token: accessToken });
+      
+      const { user, error: signInError } = await supabase.auth.signIn({ access_token: accessToken });
       console.log("Signed in w token". user, " signin errror: ", error);
       if (signInError) {
         console.log("Reset - Error with sign-in")
         error = signInError.message;
         return  ;
       }
-      */
+      
       console.log("Resetting with: ",password," pwd ",supabase.auth)
       const { error: resetError } = await supabase.auth.updateUser({ password: password });
       if (resetError) {
