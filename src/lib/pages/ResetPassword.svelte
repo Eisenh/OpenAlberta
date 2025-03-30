@@ -13,6 +13,9 @@
   let successMessage = '';
   let view = 'request'; // 'request' or 'reset'
   let accessToken = null;
+  let tokenType = null;
+  let authType = null;
+  let refresh_token = null;
 
   onMount(async () => {
     // Check if we have an access token in the URL (for password reset)// Check for Supabase auth tokens
@@ -32,10 +35,10 @@
       const params = new URLSearchParams(queryString);
 
       // 4. Access the parameter values
-      const tokenType = params.get('token_type');
-      const authType = params.get('type');
-      const accessToken = params.get('access_token');
-      const refresh_token = params.get('refresh_token');
+      tokenType = params.get('token_type');
+      authType = params.get('type');
+      accessToken = params.get('access_token');
+      refresh_token = params.get('refresh_token');
       let error = null;
       console.log("token: ", accessToken);
       console.log('token_type:', tokenType);
