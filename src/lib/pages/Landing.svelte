@@ -261,7 +261,17 @@
     if (!embedder) {
       try {
         console.log("Initializing embedder...");
-        embedder = await pipeline("feature-extraction", 'Xenova/all-MiniLM-L6-v2'  );
+        isModelLoading.set( true);
+                
+        embedder = await pipeline("feature-extraction", 'Xenova/all-MiniLM-L6-v2', {
+          progress_callback: (progress) => {
+            const percent = Math.round(progress.loaded / progress.total * 100);
+            modelLoadingProgress.set(percent);
+            if (percent === 100) {
+                            isModelLoading.set(false);
+            }
+          }
+        });
         //const testresult = await embedder("test string");
         //console.log("Embedder initialized", JSON.stringify(testresult));
         
