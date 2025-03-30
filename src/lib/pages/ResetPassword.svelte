@@ -43,7 +43,7 @@
       console.log("token: ", accessToken);
       console.log('token_type:', tokenType);
       console.log('authType:', authType);
-      console.log("reresh_token: ",refresh_token);
+      console.log("refresh_token: ",refresh_token);
 
       // Do something with the parameters...
       
@@ -52,7 +52,7 @@
         view = 'reset';
         
         //const { error } = await supabase.auth.exchangeCodeForSession({ accessToken, refresh_token });
-          
+        const { error } = await supabase.auth.setSession({ access_token, refresh_token });  
         if (error) {
           console.error('Error setting session:', error.message);
         } else {
@@ -156,6 +156,7 @@
         console.log("reset 153 ", errorMessage);
         //return;  // don't need acess token here if already signed in.
       }
+      /*
       //const { data, error: sessionError } = await supabase.auth.getSession()
       const { user, error: signInError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refresh_token });
       console.log("Signed in w token". user, " signin error: ", signInError);
@@ -164,7 +165,7 @@
         error = signInError.message;
         return  ;
       }
-      
+      */
       console.log("Resetting with: ",password," pwd ",supabase.auth)
       const { error: resetError } = await supabase.auth.updateUser({ password: password });
       if (resetError) {
