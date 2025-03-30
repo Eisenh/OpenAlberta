@@ -14,7 +14,7 @@
   let view = 'request'; // 'request' or 'reset'
   let accessToken = null;
 
-  onMount(() => {
+  onMount(async () => {
     // Check if we have an access token in the URL (for password reset)// Check for Supabase auth tokens
     //const initialHash = window.location.hash;
     let initialHash = window.location.hash.substring(1); // remove leading #
@@ -35,10 +35,12 @@
       const tokenType = params.get('token_type');
       const authType = params.get('type');
       const accessToken = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
 
       console.log("token: ", accessToken);
       console.log('token_type:', tokenType);
       console.log('authType:', authType);
+      console.log("reresh_token: ",refresh_token);
 
       // Do something with the parameters...
       
@@ -46,16 +48,21 @@
         console.log("Found password reset token in URL");
         view = 'reset';
         
-        // Clean up the URL by removing the auth params
-        //window.history.replaceState(null, '', '#/reset-password');
+        //const { error } = await supabase.auth.exchangeCodeForSession({ accessToken, refresh_token });
+          
+        if (error) {
+          console.error('Error setting session:', error.message);
+        } else {
+          console.log('Session set, user authenticated.');
+        }
       } else if (accessToken) {
-        console.error("Invalid token type:", authType);
+        console.error("Invalid token auth type:", authType);
         errorMessage = 'Invalid password reset link';
         view = 'request';
       } else {
         console.log("No access token found in URL");
       }
-      
+
         
     } else {
         console.log('No query parameters found in the hash.');
@@ -75,7 +82,7 @@
       // Make sure the redirectTo URL includes the base path
       // This needs to be the FULL URL including domain for Supabase auth
       const fullRedirectUrl = `${window.location.origin}${basePath}/#/reset-password`;
-      console.log("Reset password redirect URL:", fullRedirectUrl);
+      console.log("Reset password ", basePath, " redirect URL:", fullRedirectUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: fullRedirectUrl,
@@ -94,60 +101,106 @@
     }
   }
 
-async function handleResetPassword() {
-  let loading = true;
-  let errorMessage = '';
-  let successMessage = '';
-  
-
-  if (password !== confirmPassword) {
-    errorMessage = 'Passwords do not match';
-    loading = false;
-    return;
-  }
-
-  try {
-    console.log("Resetting with: ",password," pwd ",supabase.auth)
+  const handleSubmit = async (e) => { 
+    e.preventDefault();
+            
     if (!accessToken) {
       error = 'Access token is missing.';
       return;
     }
-    
-// Sign in the user with the access token
+            
+    // Sign in the user with the access token
 
             
-    const { user, error: signInError } = await supabase.auth.signIn({ access_token: accessToken });
-    
+    const { user, error: signInError } = await supabase.auth.signIn({access_token: accessToken});
+            
     if (signInError) {
-      error = signInError.message;
-      return  ;
+      error = signInError.message;            
+      return;
     }
+            
+    // Now update the password
 
-    const { error: resetError } = await supabase.auth.update({ password: password });
+            
+    const { error: resetError } = await supabase.auth.update({password: newPassword});
             
     if (resetError) {
-                error = resetError.message;
-    } 
-    else {  
-      success = true;  
-      successMessage = 'Password updated successfully!';
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      error = resetError.message;
+    } else {
+      success = true;
     }
-  
-  } catch (error) {
-    errorMessage = error.message || 'Password reset failed. Please request a new link.';
-    console.error('Password reset error:', error);
-  } finally {
-    loading = false;
+  };
+
+  async function handleResetPassword() {
+    let loading = true;
+    let errorMessage = '';
+    let successMessage = '';
+    let error = null;
+    
+
+    if (password !== confirmPassword) {
+      errorMessage = 'Passwords do not match';
+      loading = false;
+      return;
+    }
+
+    try {
+
+
+      if (!accessToken) {
+        errorMessage = 'Access token is missing.';
+        console.log("reset 113 ", errorMessage);
+        //return;  // don't need acess token here if already signed in.
+      }
+      
+      //const { user, error: signInError } = await supabase.auth.signIn({ access_token: accessToken });
+      console.log("Signed in w token". user, " signin errror: ", error);
+      if (signInError) {
+        console.log("Reset - Error with sign-in")
+        error = signInError.message;
+        return  ;
+      }
+      
+      console.log("Resetting with: ",password," pwd ",supabase.auth)
+      const { error: resetError } = await supabase.auth.update({ password: password });
+      if (resetError) {
+        console.log("Reset - Error with update: ", error);
+        errorMessage = resetError.message;
+      } 
+      else {  
+        success = true;  
+        successMessage = 'Password updated successfully!';
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      }
+    
+    } catch (error) {
+      errorMessage = error.message || 'Password reset failed. Please request a new link.';
+      console.error('Password reset error:', error);
+    } finally {
+      loading = false;
+    }
   }
-}
 
   function toggleView() {
     view = view === 'request' ? 'reset' : 'request';
     errorMessage = '';
     successMessage = '';
+  }
+
+  async function signInWithToken(accessToken) {
+    // Sign in the user with the access token
+
+    const { user, error: signInError } = await supabase.auth.signIn({ access_token: accessToken });
+    console.log("Signed in w token". user, " signin errror: ", error);
+
+    if (signInError) {
+      console.log("Reset - Error with sign-in")
+      error = signInError.message;
+      return  ;
+    }
+    return user;
   }
 </script>
 

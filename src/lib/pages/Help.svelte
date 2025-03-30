@@ -283,11 +283,11 @@
       <div class="section-content" id="technicalDetails-content">
         <p>
           Caveat: this is a side project, and exists partly as a way to learn a few things that I had no experience with, 
-          including Svelte, Supabase auth, github hosting, and Xenova Transformers. I also wanted to explore various ways of 
-          visualizing data. Each view was developed separately, using different logic as to how the data is handled, 
+          including Svelte, Supabase auth, github hosting, Xenova Transformers. and cytoscape. I went through a few iterations
+           to explore various ways of visualizing data. Each view was developed separately, using different logic as to how the data is handled, 
           filtered and displayed, so there will be minor inconsistencies. Since the goal was to ensure I understood the 
           details, I did not use the normal dev tools such as Sveltekit or even routing, UI or css libraries. That REALLy
-          isn't something I'd recommend. I may recreate this in a more production-ready framework at some point.
+          isn't something I'd recommend. I may recreate this in a more maintainable framework at some point.
         </p>
         
         <h3>Front-end Technologies</h3>
@@ -320,9 +320,10 @@
         
         <p>
           Performance is always a major concern. It takes a moment to load the embeding model, but after that, performance 
-          should be top-notch. The model used is a good compromise between small size (for fast loading and execution) an precision
-          of the embedding itself, with an execution time of milliseconds. I chose Svelte because it is compiled away at build
-          time and therefor creates a small and fast bundle. I started the project using Qdrant vector database, which is faster than pgvector,
+          should be top-notch. The model used is a good compromise between small size (for fast loading and execution) and maintaining
+          enough precision for a search.   I chose Svelte because it is compiled away at build
+          time and therefor creates a small and fast bundle.That would matter more for more complex projects than this.
+             I started the project using Qdrant vector database, which is faster than pgvector,
           but found it mattered little for the small database size used here (30,000 records). 
         </p>
         <p>
@@ -332,6 +333,9 @@
           in 384 dimensions. Computing these beforehand would require about 
           a trillion 384 dimensional matix calculations and require a database of a trillion records. That would not fit within 
           Supabase's free tier, to say the least.
+        </p>
+        <p> 
+          I tried both Markov clustering and the current jLouvain algorithm for clusterig. Both work. jLouvain is just something I hadn't tried before.
         </p>
         <p>
           Authentication and sign-in has little significance in the app. I just wanted to go through the experience 

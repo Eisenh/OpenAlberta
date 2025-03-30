@@ -56,7 +56,6 @@
             "width": 280,
             "height": 160,
             "shape": "rectangle",
-            "grabbable": false,
             "border-width": 1,
             "border-color": "#E0E0E0",
             "padding": 12
@@ -74,7 +73,6 @@
             "padding": 12,
             "font-size": "24px",
             "text-max-width": "300",
-            "grabbable": false
           }
         },
         {
