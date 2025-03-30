@@ -36,7 +36,7 @@
       const authType = params.get('type');
       const accessToken = params.get('access_token');
       const refresh_token = params.get('refresh_token');
-
+      let error = null;
       console.log("token: ", accessToken);
       console.log('token_type:', tokenType);
       console.log('authType:', authType);
@@ -103,7 +103,8 @@
 
   const handleSubmit = async (e) => { 
     e.preventDefault();
-            
+    let error
+    //let signInError = null;
     if (!accessToken) {
       error = 'Access token is missing.';
       return;
@@ -149,10 +150,10 @@
 
       if (!accessToken) {
         errorMessage = 'Access token is missing.';
-        console.log("reset 113 ", errorMessage);
+        console.log("reset 153 ", errorMessage);
         //return;  // don't need acess token here if already signed in.
       }
-      
+      /*
       //const { user, error: signInError } = await supabase.auth.signIn({ access_token: accessToken });
       console.log("Signed in w token". user, " signin errror: ", error);
       if (signInError) {
@@ -160,7 +161,7 @@
         error = signInError.message;
         return  ;
       }
-      
+      */
       console.log("Resetting with: ",password," pwd ",supabase.auth)
       const { error: resetError } = await supabase.auth.update({ password: password });
       if (resetError) {
