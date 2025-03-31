@@ -89,20 +89,7 @@ export function handleUrl(){
         navigate(hash); //cleanHash);
     }
 }
-export function getParameterByName(name, url) {
-        name = name.replace(/[\[\]]/g, '\\$&');
-        // Modify the regex to specifically look for '&' before the name
-        const regex = new RegExp('[&?]\\b' + name + '\\b(=([^&#]*)|&|#|$)');
-        const results = regex.exec(url);
 
-        if (!results) {
-          return null;
-        }
-
-        if (!results[2]) {
-          return '';
-        }
-    }
 // Handle browser back/forward navigation
 if (typeof window !== 'undefined') {
     window.addEventListener('popstate', () => {
