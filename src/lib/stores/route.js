@@ -90,7 +90,7 @@ export function handleUrl(){
     }
 }
 export function getParameterByName(name, url) {
-        name = name.replace(/[\[\]]/g, '\\$&');
+        name = name.replace(/([\\[\]])/g, '\\$1');
         // Modify the regex to specifically look for '&' before the name
         const regex = new RegExp('[&?]\\b' + name + '\\b(=([^&#]*)|&|#|$)');
         const results = regex.exec(url);
