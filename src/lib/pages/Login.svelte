@@ -10,6 +10,7 @@
   let loading = false;
   let errorMessage = '';
   let successMessage = '';
+  let showPassword = false;
 
   onMount(() => {
     // Check URL parameters for password reset success message
@@ -84,14 +85,28 @@
             Forgot password?
           </a>
         </div>
-        <input 
-          type="password" 
-          id="password" 
-          bind:value={password} 
-          required 
-          autocomplete="current-password"
-          placeholder="Enter your password"
-        >
+        <div class="password-input-container">
+          <input 
+            type={showPassword ? 'text' : 'password'} 
+            id="password" 
+            bind:value={password} 
+            required 
+            autocomplete="current-password"
+            placeholder="Enter your password"
+          >
+          <button
+            type="button"
+            class="password-toggle"
+            on:click={() => showPassword = !showPassword}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {#if showPassword}
+              <span aria-hidden="true">Hide</span>
+            {:else}
+              <span aria-hidden="true">Show</span>
+            {/if}
+          </button>
+        </div>
       </div>
 
       <button type="submit" class="auth-button" disabled={loading}>

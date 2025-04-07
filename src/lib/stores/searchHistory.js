@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+ import { writable } from 'svelte/store';
 import { supabase } from '../supabaseClient';
 
 const STORAGE_KEY = 'app_search_history';
@@ -37,7 +37,7 @@ function createSearchHistoryStore() {
         // User is logged in, load from Supabase
         const { data, error } = await supabase
           .from('search_history')
-          .select('query, created_at')
+          .select('id, query, created_at')
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false });
           
@@ -55,6 +55,30 @@ function createSearchHistoryStore() {
         set(loadFromLocalStorage());
       }
     },
+
+    // Delete individual history item
+    deleteItem: async (id) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Remove from local store
+      update(history => history.filter(item => item.id !== id));
+      
+      // Remove from local storage
+      const updatedHistory = loadFromLocalStorage().filter(item => item.id !== id);
+      saveToLocalStorage(updatedHistory);
+
+      // Delete from Supabase if logged in
+      if (session?.user) {
+        const { error } = await supabase
+          .from('search_history')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error deleting search history item:', error);
+        }
+      }
+    },
     
     // Add search to history
     addSearch: async (query, created_at) => {
@@ -62,7 +86,7 @@ function createSearchHistoryStore() {
       //console.log("searchHistory addSearch ", newItem);
       
       // Update local store
-      let updatedHistory;
+      let updatedHistory = [];
       update(history => {
         // Check if query already exists in history
         const existingIndex = history.findIndex(item => item.query === query);
@@ -90,7 +114,7 @@ function createSearchHistoryStore() {
         // First check if this query already exists for this user
         const { data } = await supabase
           .from('search_history')
-          .select('id')
+          .select('id, created_at')
           .eq('user_id', session.user.id)
           .eq('query', query)
           .limit(1);
@@ -161,7 +185,7 @@ function createSearchHistoryStore() {
         // Check if this query already exists
         const { data } = await supabase
           .from('search_history')
-          .select('id')
+          .select('id, created_at')
           .eq('user_id', session.user.id)
           .eq('query', item.query)
           .limit(1);
