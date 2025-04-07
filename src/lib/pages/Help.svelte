@@ -242,7 +242,7 @@
               results that match 'artificial intelligence' to <i>some</i> degree, it is just that the matching 
               similarity is necessarily small, and mostly below the default Search Threshold of 0.3.  To see more results,
             lower the 'Search Threshold' slider before the search.  Note that the results include results in French
-              as well as English, since eaning is language independent!
+              as well as English, since meaning is language independent!
           </p>
           </li>
           <li>
@@ -258,7 +258,7 @@
           <p>
             A search for <strong>"AI"</strong> brings up more search results than "artificial intelligence".
             However, when the results are examined, you can see it brings up the same two results related to artiicial intelligence, 
-            plus others that are in some way related to the abbreviation "AI". The eaning of "AI" and "artificial intelligence"
+            plus others that are in some way related to the abbreviation "AI". The meaning of "AI" and "artificial intelligence"
             are the same in one context, but there are more contexts in which "AI" has some meaning.
           </p>
           </li>
