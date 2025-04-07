@@ -30,10 +30,11 @@
   let searchResults = writable([]);  // ll search results
   let selectedDataset = writable(null);
   let expandedResults = writable({});  // accordion listing of results
-  let isModelLoading = writable(false);
-  let modelLoadingProgress = writable(0);
-  let modelLoadError = writable(null);
-  let displayMode = writable("compact");  // compact, expanded, similarity graph
+let isModelLoading = writable(false);
+let modelLoadingProgress = writable(0);
+let modelLoadError = writable(null);
+let isSearching = writable(false); // New state for search operations
+let displayMode = writable("compact");  // compact, expanded, similarity graph
   let searchInput = '';
   let showHistoryDropdown = false;
   let lastAccordionClick = 0;
@@ -614,6 +615,9 @@
     
     console.log("Double-click search with:", node.description);
     
+    // Set searching state
+    isSearching.set(true);
+    
     // Clear all graph data if no results
     clearGraphData()
     
@@ -651,6 +655,9 @@
 //      console.log("Double-click search completed and updateFilteredGraphData called", results, get(searchResults));
     } catch (error) {
       console.error("Error in handle double click:", error);
+    } finally {
+      // Reset search loading state
+      isSearching.set(false);
     }
   }
   async function clearGraphData() {
@@ -666,6 +673,9 @@
       console.error("Cannot search without result embedding");
       return;
     }
+    
+    // Set searching state
+    isSearching.set(true);
     
  //   console.log("Result search with embedding vector");
     //clearGraphData();
@@ -745,6 +755,9 @@
 //      console.log("Result search completed and updateFilteredGraphData called", results, get(searchResults));
     } catch (error) {
       console.error("Error in result search:", error);
+    } finally {
+      // Always reset search loading state when done
+      isSearching.set(false);
     }
   }
 
@@ -758,6 +771,10 @@ async function handleTextSearch(searchText) {  // only for search from search ba
       searchInput = searchText;
     } else return;
   }
+  
+  // Set search loading state
+  isSearching.set(true);
+  
   const displayTitle = ' Search text : "' + searchInput + '"';
   // Store the clicked node in a separate store for single-click details display
   selectedDataset.set({  // for display only. queryNode is constructed below.
@@ -831,6 +848,9 @@ async function handleTextSearch(searchText) {  // only for search from search ba
 
   } catch (error) {
     console.error("Error in handleTextSearch:", error);
+  } finally {
+    // Reset search loading state
+    isSearching.set(false);
   }
 }
 
@@ -992,6 +1012,11 @@ async function handleTextSearch(searchText) {  // only for search from search ba
           {#if $isModelLoading}
             <div class="loading-overlay">
               <p>Loading model... {$modelLoadingProgress}%</p>
+            </div>
+          {:else if $isSearching}
+            <div class="loading-overlay">
+              <p>Searching...</p>
+              <div class="loading-spinner large"></div>
             </div>
           {:else if $modelLoadError}
             <div class="no-results-overlay">
