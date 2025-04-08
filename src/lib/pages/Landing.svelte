@@ -537,6 +537,8 @@ let displayMode = writable("compact");  // compact, expanded, similarity graph
               }
             }
             
+    // Record search in history (works for both logged-in and non-logged-in users)
+            searchHistory.addSearch(queryText, new Date().toISOString());
             return {
               id: item.id,
               label: item.metadata.title || "Untitled",  //used as label for nodes
@@ -623,7 +625,7 @@ let displayMode = writable("compact");  // compact, expanded, similarity graph
     
     try {
       // Perform the search
-      const { results } = await searchVectors(node.description, resultCount);
+      const { results } = await searchVectors(node.label + ":" + node.description, resultCount);
       
 //      console.log(`Found ${results?.length || 0} results for node double-click`, results);
       
@@ -804,8 +806,6 @@ async function handleTextSearch(searchText) {  // only for search from search ba
       return;
     }
     
-    // Record search in history (works for both logged-in and non-logged-in users)
-    searchHistory.addSearch(searchInput, new Date().toISOString());
     
     // Ensure queryVector is an array
     if (queryVector && typeof queryVector === 'string') {

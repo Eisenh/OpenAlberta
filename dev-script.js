@@ -1,4 +1,5 @@
 import { exec, spawn } from "child_process";
+import "dotenv/config"; // This will load environment variables from .env file
 
 // Function to kill process on port 5173
 function killPort() {
@@ -41,9 +42,19 @@ async function startDev() {
 
     // Start Vite
     console.log("Starting Vite dev server...");
+    
+    // Log environment variables to confirm they're loaded (will show in terminal)
+    console.log("Loaded environment variables:");
+    console.log("VITE_SUPABASE_URL:", process.env.VITE_SUPABASE_URL ? "✓ Defined" : "✗ Undefined");
+    console.log("VITE_SUPABASE_ANON_KEY:", process.env.VITE_SUPABASE_ANON_KEY ? "✓ Defined" : "✗ Undefined");
+    
+    // Pass environment variables to the Vite process
     const vite = spawn("npx", ["vite"], {
       stdio: "inherit",
       shell: true,
+      env: {
+        ...process.env, // Include all existing environment variables
+      }
     });
 
     // Handle process exit

@@ -146,12 +146,17 @@
             {#each $searchHistory as item}
               <li class="search-history-item">
                 <div class="search-query">
-                  <span class="search-icon">
+                  <!-- Replace the search-icon span with a copy-to-clipboard button -->
+                  <button class="copy-button" aria-label="copy to clipboard" on:click={() => {
+                      navigator.clipboard.writeText(item.query)
+                        .then(() => alert(`Copied to clipboard: ${item.query}`))
+                        .catch(err => console.error("Copy failed:", err));
+                    }}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
-                  </span>
+                  </button>
                   <span class="query-text">{item.query}</span>
                 </div>
                 <div class="search-meta">
@@ -192,7 +197,7 @@
 
 <style>
   .profile-page {
-    max-width: 800px;
+    max-width: 80%;  
     margin: 0 auto;
     padding: var(--spacing-md);
   }
@@ -316,18 +321,32 @@
     gap: var(--spacing-sm);
   }
 
-  .search-icon {
+  .copy-button {
+    background: none;
+    border: none;
+    cursor: pointer;
     color: var(--color-text-light);
+    padding: 0;
   }
 
   .query-text {
     font-weight: var(--font-weight-medium);
     color: var(--color-text);
+    cursor: pointer;
   }
 
   .search-timestamp {
     color: var(--color-text-light);
     font-size: 0.9rem;
+  }
+
+  .search-meta {
+    display: flex;
+    min-width: 30%;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-sm);
+    justify-content: flex-end; /* added to right-align the delete buttons */
   }
 
   .empty-state {
@@ -395,7 +414,7 @@
       flex-direction: column;
       text-align: center;
     }
-
+    
     .user-avatar {
       margin-right: 0;
       margin-bottom: var(--spacing-md);

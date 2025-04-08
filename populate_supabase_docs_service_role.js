@@ -11,16 +11,16 @@ const COMPANY_NAMESPACE = uuidv5('Eisenhawer Tech', DNS_NAMESPACE);
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
+import 'dotenv/config';
 
-// Create a dedicated service role client for this script
-if (process.argv.length < 5) {
-  console.error('Usage: node populate_supabase_docs_service_role.js <NUMBER_OF_DOCS> <SUPABASE_URL> <SERVICE_ROLE_KEY>');
+// Initialize Supabase client with environment variables
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  console.error('Missing Supabase credentials in environment variables');
   process.exit(1);
 }
-
-const supabaseUrl = 'xxxx';
-const supabaseServiceRoleKey = 'xxxx';
-const [, , numDocs, supabaseUrl, supabaseServiceRoleKey] = process.argv;
 
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
@@ -47,8 +47,8 @@ async function getEmbedder() {
  * @throws {Error} When the API request fails
  */
 
-export async function fetchPackageList() {
-    const url = "https://open.alberta.ca/api/3/action/package_list";
+export async function fetchPackageList(ckanBaseUrl) {
+    const url = `${ckanBaseUrl}/api/3/action/package_list`;
     try {
         console.log("Fetching package list from:", url);
         const response = await fetch(url, {
@@ -100,8 +100,8 @@ export async function fetchPackageList() {
 }
 
 
-export async function fetchPackageData(packageId) {
-    const url = `https://open.alberta.ca/api/3/action/package_show?id=${packageId}`;
+export async function fetchPackageData(packageId, ckanBaseUrl) {
+    const url = `${ckanBaseUrl}/api/3/action/package_show?id=${packageId}`;
     try {
         console.log(`Fetching package data for ${packageId} from:`, url);
         const response = await fetch(url, {
@@ -206,10 +206,10 @@ async function insertIntoDocsMeta(packageId, metadata, embedding) {
     }
 }
 
-export async function processPackages(customLimit) {
+export async function processPackages(ckanBaseUrl, customLimit = null) {
   try {
-    // Fetch package list inside the function to avoid top-level await
-    const packages = await fetchPackageList();
+    // Fetch package list using provided CKAN URL
+    const packages = await fetchPackageList(ckanBaseUrl);
     if (!packages) {
       console.error("Failed to fetch package list");
       return { success: false, message: "Failed to fetch package list" };
@@ -226,7 +226,7 @@ export async function processPackages(customLimit) {
       const packageId = packages[i];
       console.log(`Processing package ${i+1}/${Math.min(limit, packages.length)}: ${packageId}`);
       
-      const metadata = await fetchPackageData(packageId);
+      const metadata = await fetchPackageData(packageId, ckanBaseUrl);
       if (!metadata) {
         console.warn(`⚠️ Skipping ${packageId}: No metadata available`);
         failureCount++;
@@ -270,10 +270,18 @@ export async function processPackages(customLimit) {
 }
 
 // Run as CLI script if executed directly
+// CLI-specific execution with environment validation
 if (import.meta.url.endsWith(process.argv[1])) {
-  const limit = null;
+  // Read CKAN URL from environment
+  const ckanBaseUrl = process.env.CKAN_BASE_URL;
+  if (!ckanBaseUrl) {
+    console.error('Missing CKAN_BASE_URL in environment variables');
+    process.exit(1);
+  }
+
+  const limit = process.env.MAX_DOCS || null;
   
-  processPackages(limit)
+  processPackages(ckanBaseUrl, limit)
     .then(result => {
       console.log('Result:', result);
       if (result.success) {

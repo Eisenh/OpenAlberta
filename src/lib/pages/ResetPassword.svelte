@@ -2,7 +2,7 @@
   // @ts-nocheck - Svelte 5 TypeScript definition issues
   import { onMount } from 'svelte';
   import { supabase } from '../supabaseClient.js';
-  import { navigate, getParameterByName, handleUrl } from '../stores/route.js';
+  import { navigate, handleUrl } from '../stores/route.js';
 
   // State variables
   let email = '';
