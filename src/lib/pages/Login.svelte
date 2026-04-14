@@ -1,7 +1,7 @@
 <script>
   // @ts-nocheck - Svelte 5 TypeScript definition issues
   import { searchHistory } from '$stores/searchHistory.js';
-  import { supabase } from '../supabaseClient.js';
+  import { supabase } from '../supabaseClient';
   import { navigate } from '../stores/route.js';
   import { onMount } from 'svelte';
 

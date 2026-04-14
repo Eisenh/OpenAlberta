@@ -1,6 +1,6 @@
 <script>
   // @ts-nocheck - Svelte 5 TypeScript definition issues
-  import { supabase } from '../supabaseClient.js';
+  import { supabase } from '../supabaseClient';
   import { navigate } from '../stores/route.js';
 
   let email = '';
