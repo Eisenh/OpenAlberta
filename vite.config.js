@@ -4,6 +4,8 @@ import { resolve } from 'path';
 import fs from "fs";
 
 export default defineConfig(({ mode }) => {
+  // loadEnv reads .env, .env.local, .env.[mode], .env.[mode].local from project root.
+  // VITE_* prefixed vars are automatically exposed as import.meta.env.* in browser code.
   const env = loadEnv(mode, process.cwd(), "");
   const isDev = mode === "development";
 

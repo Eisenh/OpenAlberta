@@ -1,6 +1,6 @@
 import { exec, spawn } from "child_process";
 import dotenv from "dotenv";
-dotenv.config({ path: ".env_local" }); // Load from .env_local (project convention)
+dotenv.config({ path: ".env.local" }); // Load from .env.local (Vite convention; covered by *.local gitignore rule)
 
 // Function to kill process on port 5173
 function killPort() {

@@ -5,7 +5,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing Supabase environment variables. Check .env_local.')
+  console.error('Missing Supabase environment variables. Check .env.local.')
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
