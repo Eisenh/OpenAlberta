@@ -7,7 +7,7 @@
   import GraphSimilarity from '../components/GraphSimilarity.svelte';
   import { searchHistory } from '$stores/searchHistory';
   import { supabase } from '../supabaseClient';
-  import { pipeline, env } from "@xenova/transformers";
+  import { pipeline, env } from "@huggingface/transformers";
   import { 
     calculateSimilarityMatrix, 
     filterGraphByThreshold 
