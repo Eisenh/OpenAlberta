@@ -25,14 +25,43 @@ Transform the app from a single-source Alberta open data portal into a **multi-s
 ## Subsystem 1: Security Migration
 
 ### Problem
-`supabaseClient.js` uses `createClient` with `VITE_SUPABASE_ANON_KEY`. This key is leaked. It must be replaced immediately without any schema changes.
+`supabaseClient.js` uses `createClient` with `VITE_SUPABASE_ANON_KEY`. This key is leaked. Email verification is also broken in production — no SMTP server is configured and no OAuth providers are set up.
 
-### Fix
+### Fix — keys
+
 - Replace `VITE_SUPABASE_ANON_KEY` with `VITE_SUPABASE_PUBLISHABLE_KEY` in `.env_local`
-- Replace `createClient` with `createBrowserClient` from `@supabase/supabase-js` in `src/lib/supabaseClient.js`
-- All pages importing `supabaseClient.js` get the fix automatically — no per-file changes
+- Replace `createClient` with `createBrowserClient` from `@supabase/supabase-js` in `src/lib/supabaseClient.js` → renamed to `supabaseClient.ts`
+- All pages importing `supabaseClient.js` get the fix automatically — import paths updated to `.ts`
 - The secret key (replacing `service_role`) lives **only** in Supabase edge function environment variables, set via `supabase secrets set` — never in any committed file or Vite env
 - `.env_copy` (already deleted) stays gone. `.env_local` (untracked) is the canonical local dev file
+
+### Fix — TypeScript conversion (files touched by this subsystem)
+
+- `src/lib/supabaseClient.js` → `supabaseClient.ts`
+- `routes.js` (root) → `routes.ts`
+- All new files written in TypeScript throughout the project
+- On pages significantly modified in later subsystems: remove `// @ts-nocheck` and fix type errors
+- Untouched pages left as-is — no churn for zero gain
+
+### Fix — auth workflows
+
+Email/password auth is broken without SMTP. Two additions:
+
+**1. Resend SMTP** (fixes existing email/password flow)
+
+- Create a free Resend account, generate API key
+- Configure in Supabase dashboard: Settings → Auth → SMTP → Resend credentials
+- Free tier: 3,000 emails/month — sufficient for this project
+- No code changes required — Supabase handles sending
+
+**2. Google OAuth** (primary alternative, no email required)
+
+- Configure Google OAuth app in Google Cloud Console
+- Add client ID + secret to Supabase dashboard: Settings → Auth → Providers → Google
+- Add "Continue with Google" button to `Login.svelte` and `SignUp.svelte` via `supabase.auth.signInWithOAuth({ provider: 'google' })`
+- Three lines of code per page; no server-side changes
+
+GitHub OAuth may be added later for developer-facing use cases but is not in scope here.
 
 ### RLS as defence-in-depth
 Even with the publishable key exposed, RLS ensures:
@@ -40,6 +69,22 @@ Even with the publishable key exposed, RLS ensures:
 - Authenticated users: INSERT only (on designated tables)
 - Admins: INSERT + UPDATE + DELETE
 - `docs_meta` INSERT: service role only (edge function)
+
+---
+
+## Subsystem 1b: Dependency Cleanup
+
+Performed alongside the security fix before any new code is written.
+
+| Action | Package | Reason |
+|---|---|---|
+| Replace | `@xenova/transformers` → `@huggingface/transformers` v3 | v2 is deprecated; v3 is the maintained successor with the same API surface |
+| Remove | `@tensorflow/tfjs` | Not used — embeddings are via transformers only |
+| Remove | `tfjs` | Duplicate / unused |
+| Remove | `svelte-routing` | Listed in deps but app uses a custom routing store; not imported anywhere |
+| No addition | *(no i18n library)* | DB-backed dynamic translations don't fit static libraries like paraglide; custom reactive store is sufficient |
+
+After cleanup, update all import paths from `@xenova/transformers` to `@huggingface/transformers` — API is compatible but the package name changes. Verify the embedding pipeline still initialises correctly in `Landing.svelte` before proceeding.
 
 ---
 
