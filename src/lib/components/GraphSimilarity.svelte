@@ -6,7 +6,7 @@
   import fcose from "cytoscape-fcose";
   import cola from "cytoscape-cola";
   import { displaySimilarityThreshold } from "../stores/graphSettings.js";
-  import { calculateSimilarityMatrix } from "../utils/similarity.js";
+  import { calculateSimilarityMatrix } from "../utils/similarity";
   import {jLouvain } from '../utils/louvain';
   export let data;  // this is where the siilarityGraphData is passed.
   let threshold = get(displaySimilarityThreshold);
