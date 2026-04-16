@@ -16,18 +16,21 @@ CREATE INDEX IF NOT EXISTS search_history_created_at_idx ON public.search_histor
 ALTER TABLE public.search_history ENABLE ROW LEVEL SECURITY;
 
 -- Create policy for users to select their own search history
+DROP POLICY IF EXISTS "Users can view their own search history" ON public.search_history;
 CREATE POLICY "Users can view their own search history"
   ON public.search_history
   FOR SELECT
   USING (auth.uid() = user_id);
 
 -- Create policy for users to insert their own search history
+DROP POLICY IF EXISTS "Users can insert their own search history" ON public.search_history;
 CREATE POLICY "Users can insert their own search history"
   ON public.search_history
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 -- Create policy for users to delete their own search history
+DROP POLICY IF EXISTS "Users can delete their own search history" ON public.search_history;
 CREATE POLICY "Users can delete their own search history"
   ON public.search_history
   FOR DELETE

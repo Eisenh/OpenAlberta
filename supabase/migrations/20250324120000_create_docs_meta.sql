@@ -17,6 +17,7 @@ CREATE INDEX ON docs_meta USING ivfflat (embedding vector_cosine_ops) WITH (list
 ALTER TABLE public.docs_meta ENABLE ROW LEVEL SECURITY;
 
 -- Create access policies matching docs table structure
+DROP POLICY IF EXISTS "Admins can manage docs_meta" ON public.docs_meta;
 CREATE POLICY "Admins can manage docs_meta" ON public.docs_meta
     USING (
         auth.uid() IN (
@@ -29,5 +30,6 @@ CREATE POLICY "Admins can manage docs_meta" ON public.docs_meta
         )
     );
 
+DROP POLICY IF EXISTS "Service role bypass for docs_meta" ON public.docs_meta;
 CREATE POLICY "Service role bypass for docs_meta" ON public.docs_meta
     USING (auth.jwt() ->> 'role' = 'service_role');
