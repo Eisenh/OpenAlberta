@@ -1,5 +1,5 @@
 -- Create docs_meta table with deterministic UUIDs
-CREATE TABLE public.docs_meta (
+CREATE TABLE IF NOT EXISTS public.docs_meta (
     id UUID PRIMARY KEY,
     packageId TEXT NOT NULL,
     metadata JSONB NOT NULL,
