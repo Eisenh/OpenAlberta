@@ -344,7 +344,9 @@ let displayMode = writable("compact");  // compact, expanded, similarity graph
       // Use the existing model instance if available
       if ($modelInstance) {
         //console.log("Using cached model instance");
-        const  output = await $modelInstance(text, { pooling: "mean", normalize: true });
+        // Gemma 3 requires explicit structural prefixes for queries
+        const formattedQuery = `task: search result | query: ${text}`;
+        const output = await $modelInstance(formattedQuery, { pooling: "mean", normalize: true });
         // Extract the embedding output
         const embedding = Array.from(output.data)
         return embedding;  //whole embedding incl .data, .shape, .dtype
