@@ -43,33 +43,36 @@ export class CKANIngestor {
         this.isRunning = true;
 
         try {
-            // Fetch Delta Modification States natively first
+            // Fetch local database state to accurately display preserved progress
             let localPackagesMap = new Map();
-            if (this.isDelta) {
-                this.onProgress("Fetching local database state for diffing...", 0, 0);
-                const { data: existingDocs } = await supabase
-                    .from('docs_meta')
-                    .select('package_id, metadata->metadata_modified')
-                    .eq('data_source_id', this.dataSourceId);
-                
-                if (existingDocs) {
-                    existingDocs.forEach(doc => {
+            let ingestedSet = new Set<string>();
+
+            this.onProgress("Fetching local database state...", 0, 0);
+            
+            const { data: existingDocs } = await supabase
+                .from('docs_meta')
+                .select('package_id, metadata->metadata_modified')
+                .eq('data_source_id', this.dataSourceId);
+            
+            if (existingDocs) {
+                existingDocs.forEach(doc => {
+                     if (this.isDelta) {
                          localPackagesMap.set(doc.package_id, doc.metadata_modified);
-                    });
-                }
+                     }
+                     ingestedSet.add(doc.package_id);
+                });
             }
 
-            this.onProgress(`Preparing CKAN Pagination Network...`, 0, 100);
+            this.onProgress(`Preparing CKAN Pagination Network...`, ingestedSet.size, ingestedSet.size);
 
             let start = 0;
             const rows = 1000;
             let totalCount = 0;
-            let processedSoFar = 0;
             let keepPaginating = true;
 
             while (keepPaginating && this.isRunning) {
                 const proxyUrl = `${this.ckanUrl}/api/3/action/package_search?q=*:*&rows=${rows}&start=${start}`;
-                this.onProgress(`Downloading & Diff-Scanning CKAN Records ${start} to ${start + rows}...`, processedSoFar, Math.max(totalCount, 100));
+                this.onProgress(`Downloading & Diff-Scanning CKAN Records ${start} to ${start + rows}...`, ingestedSet.size, Math.max(totalCount, ingestedSet.size, 100));
                 
                 const { data: json, error } = await supabase.functions.invoke('ckan-proxy', {
                     body: { url: proxyUrl }
@@ -123,12 +126,15 @@ export class CKANIngestor {
                                   // Eject immediately to Server
                                   await this.saveBulkToSupabase(edgePayload);
                                   
+                                  // On success, add to ingestedSet
+                                  chunk.forEach((pkg: any) => ingestedSet.add(pkg.name || pkg.id));
+                                  
                               } catch(e) {
                                   console.error("Batch Insertion Failed: ", e);
                               } finally {
                                   chunksProcessed++;
                                   const embeddedCount = Math.min(chunksProcessed * chunkSize, validPackages.length);
-                                  this.onProgress(`Embedding Batch ${embeddedCount} / ${validPackages.length} in Page...`, processedSoFar + embeddedCount, totalCount);
+                                  this.onProgress(`Embedding Batch ${embeddedCount} / ${validPackages.length} in Page...`, ingestedSet.size, totalCount);
                               }
                           })());
                      }
@@ -136,10 +142,9 @@ export class CKANIngestor {
                      await Promise.all(batchPromises);
                 }
 
-                processedSoFar += packages.length;
-                this.onProgress(`Processing active valid embeddings...`, processedSoFar, totalCount);
+                this.onProgress(`Processed page ${start / rows + 1}...`, ingestedSet.size, totalCount);
 
-                if (processedSoFar >= totalCount) {
+                if (start + packages.length >= totalCount) {
                     keepPaginating = false;
                 } else {
                     start += rows;
