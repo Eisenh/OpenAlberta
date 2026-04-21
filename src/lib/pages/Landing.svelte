@@ -13,7 +13,7 @@
     filterGraphByThreshold 
   } from '../utils/similarity';
   import { displaySimilarityThreshold } from '../stores/graphSettings';
-  
+  import { selectedDataSourceId } from '../stores/searchFilter';
   //console.log("Local Model Path:", import.meta.env.BASE_URL + "models/");
  // env.localModelPath = import.meta.env.DEV  ? "/public/model/" :"/model/"; //import.meta.env.BASE_URL + "models/"; //"../public/models/";
   // Add caching configuration
@@ -263,8 +263,7 @@ let displayMode = writable("compact");  // compact, expanded, similarity graph
       try {
         console.log("Initializing embedder...");
         isModelLoading.set( true);
-                
-        embedder = await pipeline("feature-extraction", 'Xenova/all-MiniLM-L6-v2', {
+        embedder = await pipeline("feature-extraction", 'onnx-community/embeddinggemma-300m-ONNX', {
           progress_callback: (progress) => {
             const percent = Math.round(progress.loaded / progress.total * 100);
             modelLoadingProgress.set(percent);
@@ -363,8 +362,12 @@ let displayMode = writable("compact");  // compact, expanded, similarity graph
           
           if (embedder) {
             modelInstance.set(embedder);
-            const output = await embedder(text, { pooling: "mean", normalize: true });
-            // Extract the embedding output
+            
+            // Gemma 3 requires explicit structural prefixes for queries
+            const formattedQuery = `task: search result | query: ${text}`;
+            const output = await embedder(formattedQuery, { pooling: "mean", normalize: true });
+            
+            // Extract the full 768-dimensional native array
             const embedding = Array.from(output.data)
 //            console.log("Embedding generated successfully", embedding);
             return embedding; //Array.from(result.data);  //embeddding vector
@@ -477,116 +480,106 @@ let displayMode = writable("compact");  // compact, expanded, similarity graph
   }
 
 // searchVectors needs to return the whole data set and add a new first node if the search was from text rather than a node click
-  async function searchVectors(queryText, rc = resultCount) {  //return { results, queryText }
+  async function searchVectors(queryText, rc = resultCount) {
     try {
+      console.log("Executing Hybrid Search...");
+      const filterUuid = get(selectedDataSourceId) === 'all' || get(selectedDataSourceId) === 'Worldwide' ? null : get(selectedDataSourceId);
+      
+      let vectorPromise = Promise.resolve({ data: [], error: null });
+      let queryVectorLocal = [];
+      
       if ($modelInstance) {
-        console.log("Using vector search with loaded model");
-        //let queryVector = [];
         try {
-          queryVector = await generateEmbedding(queryText);
-          
-//          console.log("In searchVectors, Query vector type:", typeof queryVector);
-//          console.log("Query vector is array?", Array.isArray(queryVector));
-          if (Array.isArray(queryVector) && queryVector.length > 0) {
-//            console.log("First few values of query vector:", queryVector.slice(0, 5));
-          }
-          
-          const { error: matchError, data: response } = await supabase.rpc(
-            'match_vectors_meta',
-            {
-              query_embedding: queryVector,
+          queryVectorLocal = await generateEmbedding(queryText);
+          if (Array.isArray(queryVectorLocal) && queryVectorLocal.length > 0) {
+            queryVector = queryVectorLocal; // update store shadow fallback
+            vectorPromise = supabase.rpc('match_vectors_meta', {
+              query_embedding: queryVectorLocal,
               match_threshold: similarityThreshold,
-              match_count: rc, 
-            }
-          );
-
-          if (matchError) {
-            console.error('Error searching documents:', matchError);
-            return { results: [] };
+              match_count: rc,
+              filter_data_source_id: filterUuid
+            });
           }
-
-          if (!response || response.length === 0) {
-            console.log("No vector search results found");
-            return { results: [] };
-          }
-
-          // Check the type of first embedding to diagnose the issue
-          if (response.length > 0) {
-//            console.log("First embedding type:", typeof response[0].embedding);
-//            console.log("Is array?", Array.isArray(response[0].embedding));
-//            console.log("First few values:", Array.isArray(response[0].embedding) ? response[0].embedding.slice(0, 5) : "Not an array");
-              
-            // If it's a string, try to parse it
-            if (typeof response[0].embedding === 'string') {
-              console.log("Embedding appears to be stored as a string, attempting to parse");
-            }
-          }
-          
-          const results = response.map((item) => {
-            // Process embedding - ensure it's an array
-            let embedding = item.embedding;
-            
-            // If it's a string, try to parse it as JSON
-            if (typeof embedding === 'string') {
-              try {
-                embedding = JSON.parse(embedding);
-              } catch (e) {
-                console.error("Failed to parse embedding string:", e, " Splitting by ,");
-                // If parsing fails, split by commas as a fallback
-                embedding = embedding.split(',').map(Number);
-              }
-            }
-            
-    // Record search in history (works for both logged-in and non-logged-in users)
-            searchHistory.addSearch(queryText, new Date().toISOString());
-            return {
-              id: item.id,
-              label: item.metadata.title || "Untitled",  //used as label for nodes
-              description: item.metadata.notes || item.content || "No description available",
-              resources: item.metadata.resources || [],
-              tags: item.metadata.tags || [],
-              embedding: embedding,  // Store embeddings as array
-              similarity: Math.min(item.similarity, 1)
-            };
-          });
-          
-//          console.log(`Processed ${results.length} search results with embeddings`);
-//          console.log("First result embedding type:", typeof results[0]?.embedding);
- //         console.log("First embedding is array?", Array.isArray(results[0]?.embedding));
-          
-          return { results };
-
-        } catch (error) {
-          console.error("Error in vector search:", error);
-          
-          return { results };
+        } catch (e) {
+          console.error("Vector generation failed:", e);
         }
-      } else {
-        // Fallback to text search with same return structure
-        const { data, error } = await supabase
-          .from('docs_meta')
-          .select('id, metadata')
-          .or(`metadata->>title.ilike.%${queryText}%,metadata->>description.ilike.%${queryText}%,metadata->>notes.ilike.%${queryText}%`)
-          .limit(resultCount);
+      }
 
-        if (error) throw error;
+      // Keyword search query
+      let textQuery = supabase.from('docs_meta')
+        .select('id, metadata, embedding')
+        .or(`metadata->>title.ilike.%${queryText}%,metadata->>description.ilike.%${queryText}%,metadata->>notes.ilike.%${queryText}%`)
+        .limit(rc);
+        
+      if (filterUuid) {
+        textQuery = textQuery.eq('data_source_id', filterUuid);
+      }
 
-        const results = (data || []).map((item, index) => ({
+      const [vectorResponse, textResponse] = await Promise.all([vectorPromise, textQuery]);
+
+      if (vectorResponse.error) console.error("Vector DB error:", vectorResponse.error);
+      if (textResponse.error) console.error("Text DB error:", textResponse.error);
+
+      // Maps results by ID to deduplicate and mark
+      const resultMap = new Map();
+      const rawVectorData = vectorResponse.data || [];
+      const rawTextData = textResponse.data || [];
+
+      // Process vectors
+      for (const item of rawVectorData) {
+        let parsedEmbedding = Array.isArray(item.embedding) ? item.embedding : [];
+        if (typeof item.embedding === 'string') {
+          try { parsedEmbedding = JSON.parse(item.embedding); } 
+          catch(e) { parsedEmbedding = item.embedding.split(',').map(Number); }
+        }
+        resultMap.set(item.id, {
           id: item.id,
           label: item.metadata.title || "Untitled",
-          description: item.metadata.notes || "No description available",
+          description: item.metadata.notes || item.content || "No description available",
           resources: item.metadata.resources || [],
           tags: item.metadata.tags || [],
-            // Use empty array as embedding since no actual embeddings available in text search
-          embedding: [],
-          similarity: 1 - (index * 0.1)
-        }));
-        
-        return { results, queryText };
+          embedding: parsedEmbedding,
+          similarity: Math.min(item.similarity, 1),
+          matchType: 'semantic'
+        });
       }
+
+      // Process keywords
+      const lowestVectorSim = rawVectorData.length > 0 ? Math.max(0.1, rawVectorData[rawVectorData.length - 1].similarity - 0.05) : 0.5;
+      
+      for (let i = 0; i < rawTextData.length; i++) {
+        const item = rawTextData[i];
+        if (resultMap.has(item.id)) {
+           // Exists in both!
+           resultMap.get(item.id).matchType = 'hybrid';
+        } else {
+           // Keyword only
+           let parsedEmbedding = Array.isArray(item.embedding) ? item.embedding : [];
+           if (typeof item.embedding === 'string') {
+             try { parsedEmbedding = JSON.parse(item.embedding); } 
+             catch(e) { parsedEmbedding = item.embedding.split(',').map(Number); }
+           }
+           
+           resultMap.set(item.id, {
+             id: item.id,
+             label: item.metadata?.title || "Untitled",
+             description: item.metadata?.notes || item.content || "No description available",
+             resources: item.metadata?.resources || [],
+             tags: item.metadata?.tags || [],
+             embedding: parsedEmbedding,
+             similarity: Math.max(0.01, lowestVectorSim - (i * 0.001)), // Append gently underneath semantic results
+             matchType: 'keyword'
+           });
+        }
+      }
+
+      searchHistory.addSearch(queryText, new Date().toISOString());
+      
+      const results = Array.from(resultMap.values());
+      return { results };
     } catch (error) {
       console.error("Search error:", error);
-      return { results, queryText };
+      return { results: [] };
     }
   }
 
@@ -827,6 +820,7 @@ async function handleTextSearch(searchText) {  // only for search from search ba
       description: searchInput,
       embedding: Array.isArray(queryVector) ? queryVector : [], // Ensure vector is an array
       similarity: 1.0, // Query node has perfect similarity to itself
+      matchType: 'query'
     };
     
     // Store the results with query node at index 0

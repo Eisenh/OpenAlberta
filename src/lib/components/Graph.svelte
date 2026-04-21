@@ -62,6 +62,27 @@
           }
         },
         {
+          selector: "node[matchType='semantic']",
+          style: {
+            "border-color": "#4CAF50",
+            "border-width": 3
+          }
+        },
+        {
+          selector: "node[matchType='hybrid']",
+          style: {
+            "border-color": "#4CAF50",
+            "border-width": 4
+          }
+        },
+        {
+          selector: "node[matchType='keyword']",
+          style: {
+            "border-color": "#2196F3",
+            "border-width": 3
+          }
+        },
+        {
           selector: "node[id='query']",
           style: {
             "color": "#F3A73C",

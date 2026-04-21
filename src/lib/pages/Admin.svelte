@@ -12,6 +12,22 @@
   let adminRole = null;
   let adminPermissions = null;
 
+  let pendingDataSources = [];
+
+  async function loadPendingSources() {
+    const { data, error } = await supabase.from('data_sources').select('*').eq('is_approved', false);
+    if (!error) pendingDataSources = data || [];
+  }
+
+  async function approveSource(id) {
+    const { error } = await supabase.from('data_sources').update({ is_approved: true }).eq('id', id);
+    if (!error) {
+        pendingDataSources = pendingDataSources.filter(s => s.id !== id);
+    } else {
+        alert('Error approving source: ' + error.message);
+    }
+  }
+
   onMount(async () => {
     const { data: { session: initialSession } } = await supabase.auth.getSession();
     session = initialSession;
@@ -35,6 +51,7 @@
           adminRole = edgeAdminData.role;
           adminPermissions = edgeAdminData.permissions;
           console.log('Admin status verified via edge function');
+          await loadPendingSources();
         }
       } catch (error) {
         console.error('Error checking admin status:', error);
@@ -42,6 +59,7 @@
         isAdmin = session?.user?.app_metadata?.claims_admin || false;
         if (isAdmin) {
           console.log('Admin status verified via app_metadata only');
+          await loadPendingSources();
         }
       }
       
@@ -86,7 +104,7 @@
   */
   // Admin action functions
   function handleDatabaseManagement() {
-    alert('Database management feature coming soon!');
+    navigate('/admin/ingestion');
   }
   
   // State for processing status
@@ -216,6 +234,35 @@
             </button>
           </div>
         </div>
+
+        <!-- NEW CKAN APPROVAL CARD -->
+        <div class="admin-card">
+          <div class="card-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <div class="card-content">
+            <h3>Data Sources Approval</h3>
+            <p>Approve incoming CKAN portal requests from users.</p>
+            {#if pendingDataSources.length === 0}
+               <p style="font-weight: bold; color: green; margin-top: 10px;">All caught up!</p>
+            {:else}
+               <ul class="pending-list">
+                 {#each pendingDataSources as source}
+                   <li>
+                     <strong>{source.display_name}</strong><br/>
+                     <span class="text-sm">{source.ckan_url}</span>
+                     <button class="btn-approve" on:click={() => approveSource(source.id)}>Approve</button>
+                   </li>
+                 {/each}
+               </ul>
+            {/if}
+          </div>
+        </div>
+        <!-- END NEW CKAN APPROVAL CARD -->
+
       </div>
       
       <div class="admin-quick-stats">
@@ -462,5 +509,41 @@
     .stats-grid {
       grid-template-columns: 1fr 1fr;
     }
+  }
+
+  .pending-list {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+  }
+
+  .pending-list li {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 8px;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+
+  .btn-approve {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 8px;
+    display: block;
+    width: 100%;
+  }
+
+  .btn-approve:hover {
+    background: #059669;
+  }
+
+  .text-sm {
+    font-size: 0.8rem;
+    color: #64748b;
   }
 </style>

@@ -105,6 +105,18 @@
           "border-width": 0
         }
       },
+      {
+        selector: "node[matchType='semantic'], node[matchType='hybrid']",
+        style: {
+          "background-color": "#4CAF50"
+        }
+      },
+      {
+        selector: "node[matchType='keyword']",
+        style: {
+          "background-color": "#2196F3"
+        }
+      },
       {  // query node and identical nodes are styled differently
         selector: "node[similarity >= 0.99]",
         

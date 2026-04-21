@@ -3,8 +3,8 @@ Last Updated: March 25, 2025
 
 ## 1. Introduction
 
-Welcome to the Alberta Open Data search tool. This app uses advanced semantic search 
-technology to help you discover and explore open datasets provided by the Government of Alberta.
+Welcome to the Open Data search tool. This app uses advanced semantic search 
+technology to help you discover and explore open datasets from various CKAN data portals worldwide.
 
 Unlike traditional keyword search systems, the platform uses AI-powered vector embeddings 
 to understand the meaning behind your queries, returning results based on semantic relevance 
@@ -97,7 +97,7 @@ with potentially lower relevance.
 
 To demonstrate some pecuiarities of vector search, we can go through a simple example. Be sure to try it!
 
-### "Artificial Intelligence" versus "What is Alberta's artifical intelligence strategy?" versus "AI"
+### "Artificial Intelligence" versus "What is the artifical intelligence strategy?" versus "AI"
 
 - Searching for the term **"artifical intelligence"** brings up few results with the default settings. 
   This is because the simple two-word search phrase does not have much semantic content. It is specific, 
@@ -108,7 +108,7 @@ To demonstrate some pecuiarities of vector search, we can go through a simple ex
   lower the 'Search Threshold' slider before the search. Note that the results include results in French
   as well as English, since meaning is language independent!
 
-- The search phrase **"What is Alberta's artifical intelligence strategy?"** has 
+- The search phrase **"What is the artifical intelligence strategy?"** has 
   a lot more subtle detail. It has more 'meaning', which is what the vector search matches. The search can 
   therefor find more ways in which datasets can be similar. That is why it is able to bring up more results 
   for a given similarity threshold.
@@ -140,9 +140,9 @@ including Svelte, Supabase auth, github hosting, Xenova Transformers. and cytosc
 
 ### Data Processing
 
-All dataset metadata from open.alberta.ca was processed as follows:
+Dataset metadata from various configured CKAN portals is securely processed by the client browser:
 
-1. Important fields from the metadata were extracted and normalized
+1. Important fields from the metadata are extracted and normalized directly from the CKAN API
 2. Text descriptions are converted to vector embeddings using all-MiniLM-L6-v2
 3. Embeddings are stored in the Supabase database using pgvector
 4. Vector similarity search is performed using cosine similarity
@@ -160,6 +160,14 @@ I tried both Markov clustering and the current jLouvain algorithm for clusterig.
 
 Authentication and sign-in has little significance in the app. I just wanted to go through the experience 
 with Supabase auth and to see how it compares to other auth stacks I have used in the past. Admin users see an administration menu and dashboard that isn't fully implemented yet (and may never be, since the supabase dashboard is fine).
+
+## 6. Global CKAN Integration
+
+This project has evolved from a single-portal search tool into a generalized engine capable of interacting with multiple CKAN instances. 
+
+- **Multi-Portal Support and Geo-location:** Users can search seamlessly across "Worldwide" datasets or filter by specific portals. The application intuitively recommends the most relevant portals by detecting your geographic region.
+- **Client-Side Data Processing:** Intensive computations (fetching from CKAN APIs and generating vector embeddings) are entirely pushed to the client using Transformers.js. No centralized backend crawls these instances, ensuring the architecture remains highly scalable with zero compute cost.
+- **Community-driven Indexing:** Authenticated users can validate and index new CKAN sources. Submissions are processed securely in the browser, turning the platform into a community-maintained index of global open data.
 
 ---
 

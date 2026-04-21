@@ -8,10 +8,12 @@ import ResetPassword from './src/lib/pages/ResetPassword.svelte'
 import VerifyEmail from './src/lib/pages/VerifyEmail.svelte'
 import Help from './src/lib/pages/Help.svelte'
 import Terms from './src/lib/pages/Terms_of_service.svelte'
+import CKAN_URL from './src/lib/pages/CKAN_URL.svelte'
 
 export const routes: Record<string, ComponentType> = {
   '/': Landing,
   '/admin': Admin,
+  '/admin/ingestion': CKAN_URL,
   '/profile': UserProfile,
   '/login': Login,
   '/signup': SignUp,
