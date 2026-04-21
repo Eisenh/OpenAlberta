@@ -8,6 +8,7 @@
   import { selectedDataSourceId } from '../stores/searchFilter';
 
   let showSettingsMenu = false;
+  let showInfoPopup = false;
   let dataSources = [];
   let userRegion = null;
   let userLat = null;
@@ -49,6 +50,15 @@
           }).sort((a, b) => a.dist - b.dist);
        } else {
           dataSources = data;
+       }
+       
+       const saved = localStorage.getItem('preferred_search_scope');
+       if (!saved) {
+           const alberta = data.find(ds => ds.display_name.toLowerCase().includes('alberta'));
+           if (alberta) {
+               selectedDataSourceId.set(alberta.id);
+               localSelectValue = alberta.id;
+           }
        }
     }
 
@@ -103,16 +113,24 @@
 <header class="header">
     <div class="header-content">
       <div class="logo">
-        <select class="geo-dropdown" value={localSelectValue === null ? "Worldwide" : localSelectValue} on:change={handleSelectChange}>
-          <option value="Worldwide">Worldwide Open Data</option>
-          {#if dataSources.length > 0}
-            <optgroup label="Data Sources (Nearest)">
-              {#each dataSources as ds}
-                <option value={ds.id}>{ds.display_name}{ds.distanceStr}</option>
-              {/each}
-            </optgroup>
-          {/if}
-        </select>
+        <div class="source-selector">
+          <div class="select-wrapper">
+            <select class="geo-dropdown" value={localSelectValue === null ? "Worldwide" : localSelectValue} on:change={handleSelectChange}>
+              <option value="Worldwide">Worldwide Open Data</option>
+              {#if dataSources.length > 0}
+                <optgroup label="Data Sources (Nearest)">
+                  {#each dataSources as ds}
+                    <option value={ds.id}>{ds.display_name}{ds.distanceStr}</option>
+                  {/each}
+                </optgroup>
+              {/if}
+            </select>
+            <span class="dropdown-icon">▼</span>
+          </div>
+          <button class="info-btn" on:click={() => showInfoPopup = true} title="How to add data sources" aria-label="Information about adding data sources">
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          </button>
+        </div>
       </div>
       
         <nav class="main-nav">
@@ -149,6 +167,23 @@
     </div>
 </header>
 
+{#if showInfoPopup}
+<div class="modal-overlay" role="button" tabindex="0" on:click={() => showInfoPopup = false} on:keydown={(e) => e.key === 'Escape' && (showInfoPopup = false)}>
+  <div class="modal-content" role="document" on:click|stopPropagation>
+    <h3>Adding Data Sources</h3>
+    <p>To add a new data source to the system, please follow these steps:</p>
+    <ol>
+      <li>Sign in to your account (or sign up if you don't have one).</li>
+      <li>Navigate to your Profile page.</li>
+      <li>Click the "Add Data Source" button.</li>
+      <li>Fill out the form with the CKAN portal URL, name, and location.</li>
+      <li>Submit for approval. Once approved, it will be available to all users!</li>
+    </ol>
+    <button class="close-btn" on:click={() => showInfoPopup = false}>Close</button>
+  </div>
+</div>
+{/if}
+
 <style>
   .geo-dropdown {
     font-size: 1.5rem;
@@ -157,7 +192,7 @@
     background: transparent;
     border: none;
     border-radius: 4px;
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 1.5rem 0.25rem 0.5rem;
     cursor: pointer;
     appearance: none;
     outline: none;
@@ -174,6 +209,81 @@
     font-size: 1rem;
     color: var(--color-text);
     background: var(--color-background);
+  }
+  .source-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .select-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .dropdown-icon {
+    position: absolute;
+    right: 0.5rem;
+    pointer-events: none;
+    font-size: 0.8rem;
+    color: var(--color-primary);
+  }
+  .info-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-light, #666);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    border-radius: 50%;
+    transition: background 0.2s, color 0.2s;
+  }
+  .info-btn:hover {
+    background: var(--color-background-hover, rgba(0,0,0,0.05));
+    color: var(--color-primary);
+  }
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-content {
+    background: var(--color-background);
+    padding: 2rem;
+    border-radius: 8px;
+    max-width: 400px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  .modal-content h3 {
+    margin-top: 0;
+    color: var(--color-primary);
+  }
+  .modal-content ol {
+    margin-bottom: 1.5rem;
+    padding-left: 1.5rem;
+    color: var(--color-text);
+  }
+  .modal-content p, .modal-content li {
+    margin-bottom: 0.5rem;
+    color: var(--color-text);
+  }
+  .close-btn {
+    background: var(--color-primary);
+    color: var(--color-background);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    width: 100%;
+  }
+  .close-btn:hover {
+    opacity: 0.9;
   }
   .header {
     background-color: var(--color-background-alt);

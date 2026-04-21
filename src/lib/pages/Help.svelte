@@ -6,11 +6,9 @@
   let sectionsExpanded = {
     introduction: true,
     searchFunctionality: false,
-    caseStudy: false,
     vectorSearch: false,
-    graphVisualization: false,
     technicalDetails: false,
-    tips: true
+    addDataSource: false
   };
   
   // Toggle section expansion with keyboard and click support
@@ -214,69 +212,13 @@
   <section>
     <button 
       class="section-header" 
-      on:click={() => toggleSection('caseStudy')}
-      on:keydown={(e) => handleKeyDown(e, 'caseStudy')}
-      aria-expanded={sectionsExpanded.caseStudy}
-      aria-controls="vectorSearch-content"
-      type="button"
-    >
-      <h2>4. Semantic Vector Search Case Study</h2>
-      <span class="toggle-icon">{sectionsExpanded.caseStudy ? '−' : '+'}</span>
-    </button>
-    {#if sectionsExpanded.caseStudy}
-      <div class="section-content" id="caseStudy-content">
-        <p>
-          To demonstrate some pecuiarities of vector search, we can go through a simple example. Be sure to try it!
-        </p>
-        
-          <h3>
-            "Artificial Intelligence" versus "What is Alberta's artifical intelligence strategy?" versus "AI"
-          </h3>
-          <ul>
-          <li> 
-          <p>
-            Searching for the term <strong> "artifical intelligence"</strong> brings up few results with the default settings. 
-            This is because the simple two-word search phrase does not have much semantic content. It is specific, 
-            but you can imagine it can be represented with number in only a couple of dimensions. As a result,
-              the number of ways it can be similar to something else is limited. It is not that there are few 
-              results that match 'artificial intelligence' to <i>some</i> degree, it is just that the matching 
-              similarity is necessarily small, and mostly below the default Search Threshold of 0.3.  To see more results,
-            lower the 'Search Threshold' slider before the search.  Note that the results include results in French
-              as well as English, since meaning is language independent!
-          </p>
-          </li>
-          <li>
-
-          <p>
-            The search phrase <strong>"What is Alberta's artifical intelligence strategy?"</strong> has 
-            a lot more subtle detail. It has more 'meaning', which is what the vector search matches. The search can 
-            therefor find more ways in which datasets can be similar. That is why it is able to bring up more results 
-            for a given similarity threshold. 
-          </p>
-          </li>
-          <li>
-          <p>
-            A search for <strong>"AI"</strong> brings up more search results than "artificial intelligence".
-            However, when the results are examined, you can see it brings up the same two results related to artiicial intelligence, 
-            plus others that are in some way related to the abbreviation "AI". The meaning of "AI" and "artificial intelligence"
-            are the same in one context, but there are more contexts in which "AI" has some meaning.
-          </p>
-          </li>
-        </ul>
-      </div>
-    {/if}
-  </section>
-
-  <section>
-    <button 
-      class="section-header" 
       on:click={() => toggleSection('technicalDetails')}
       on:keydown={(e) => handleKeyDown(e, 'technicalDetails')}
       aria-expanded={sectionsExpanded.technicalDetails}
       aria-controls="technicalDetails-content"
       type="button"
     >
-      <h2>5. Technical Implementation</h2>
+      <h2>4. Technical Implementation</h2>
       <span class="toggle-icon">{sectionsExpanded.technicalDetails ? '−' : '+'}</span>
     </button>
     {#if sectionsExpanded.technicalDetails}
@@ -293,8 +235,8 @@
         <h3>Front-end Technologies</h3>
         <ul>
           <li><strong>Svelte</strong> - A reactive JavaScript framework for building the user interfaces</li>
-          <li><strong>Xenova Transformers</strong> - Browser-compatible version of the Hugging Face Transformers library</li>
-          <li><strong>all-MiniLM-L6-v2</strong> - A compact language model for generating text embeddings</li>
+          <li><strong>@huggingface/transformers</strong> - Browser-compatible version of the Hugging Face Transformers library</li>
+          <li><strong>embeddinggemma-300m-ONNX</strong> - A powerful language model for generating text embeddings</li>
           <li><strong>ONNX Runtime</strong> - The engine that runs the model for efficient model inference in the browser</li>
           <li><strong>Cytoscape.js</strong> - For interactive graph visualization</li>
           <li><strong>Tensorflow.js</strong> - A WebGPU enabled machine learing library for fast matrix calculations</li>
@@ -313,7 +255,7 @@
         </p>
         <ol>
           <li>Important fields from the metadata were extracted and normalized</li>
-          <li>Text descriptions are converted to vector embeddings using all-MiniLM-L6-v2</li>
+          <li>Text descriptions are converted to vector embeddings using embeddinggemma-300m-ONNX</li>
           <li>Embeddings are stored in the Supabase database using pgvector</li>
           <li>Vector similarity search is performed using cosine similarity</li>
         </ol>
@@ -347,6 +289,34 @@
     {/if}
   </section>
   
+  <section>
+    <button 
+      class="section-header" 
+      on:click={() => toggleSection('addDataSource')}
+      on:keydown={(e) => handleKeyDown(e, 'addDataSource')}
+      aria-expanded={sectionsExpanded.addDataSource}
+      aria-controls="addDataSource-content"
+      type="button"
+    >
+      <h2>5. How to Add Data Sources</h2>
+      <span class="toggle-icon">{sectionsExpanded.addDataSource ? '−' : '+'}</span>
+    </button>
+    {#if sectionsExpanded.addDataSource}
+      <div class="section-content" id="addDataSource-content">
+        <p>
+          The system allows community contributions of new CKAN-compatible open data portals. To add a new data source:
+        </p>
+        <ol>
+          <li><strong>Sign In:</strong> Create an account or sign in to your existing account.</li>
+          <li><strong>Go to Profile:</strong> Click on your email address in the header or the Profile link to access your dashboard.</li>
+          <li><strong>Add Data Source:</strong> Click the "Add Data Source" button.</li>
+          <li><strong>Provide Details:</strong> Fill in the portal's CKAN API URL, a display name, and location coordinates if applicable.</li>
+          <li><strong>Approval:</strong> Your submission will be reviewed. Once approved, the data source will be available for everyone to search!</li>
+        </ol>
+      </div>
+    {/if}
+  </section>
+
   <footer>
     <p>© {currentYear} Eisenhawer Tech. All rights reserved.</p>
     <p>If you have any questions or need assistance, please contact me through eisenhawer.ca or raise an issue on github.</p>
