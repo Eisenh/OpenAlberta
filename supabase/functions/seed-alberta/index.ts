@@ -26,7 +26,7 @@ serve(async (req) => {
 
     if (insertError) {
       console.error(insertError)
-      return new Response(JSON.stringify({ error: insertError }), { status: 500 })
+      return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 })
     }
 
     // 2. Update legacy records
@@ -37,7 +37,7 @@ serve(async (req) => {
 
     if (updateError) {
       console.error(updateError)
-      return new Response(JSON.stringify({ error: updateError }), { status: 500 })
+      return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 })
     }
 
     return new Response(
@@ -45,6 +45,7 @@ serve(async (req) => {
       { headers: { "Content-Type": "application/json" } },
     )
   } catch (err) {
-    return new Response(String(err?.message ?? err), { status: 500 })
+    console.error(err)
+    return new Response('Internal Server Error', { status: 500 })
   }
 })
